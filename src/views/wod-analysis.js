@@ -1,1610 +1,559 @@
 import React from 'react'
-
-import Script from 'dangerous-html/react'
 import { Helmet } from 'react-helmet'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from 'recharts'
 
 import Navigation from '../components/navigation'
 import Footer from '../components/footer'
+import Tabs from '../components/Tabs'
+import RadarChartWOD from '../components/RadarChartWOD'
+import MetricsTable from '../components/MetricsTable'
+import HyroxStationsChart from '../components/HyroxStationsChart'
+import WeekPlan from '../components/WeekPlan'
 import './wod-analysis.css'
 
-const WODAnalysis = (props) => {
+const WODAnalysis = () => {
+  const wodText = `FOR TIME\n1000m run\n50 wall balls @ 9/6kg\n30 deadlifts @ 80/55kg\n25 burpee box jump overs 24/20"\n800m run\n20 toes to bar\n20 kettlebell lunges @ 24/16kg\n600m run`
+
+  const summaryData = {
+    domain: 'Mixed',
+    intensity: 'Alta',
+    times: {
+      Beginner: { value: 20.5, range: '18–21 min' },
+      Intermedio: { value: 17, range: '15–18 min' },
+      RX: { value: 13.5, range: '12–14 min' },
+      'HYROX Competitor': { value: 11, range: '10–11:30 min' },
+    },
+    muscles: ['Piernas', 'Core', 'Hombros', 'Posterior', 'Grip'],
+    athlete:
+      'Favorece atletas con motor aeróbico sólido, potencia de tren inferior y habilidad gimnástica controlada.',
+    transfer: 'Alta',
+    wodType: 'Placeholder: Intervalos con carga / Mixed modal',
+  }
+
+  const radarData = [
+    { label: 'Fuerza', value: 72 },
+    { label: 'Endurance', value: 88 },
+    { label: 'Velocidad', value: 65 },
+    { label: 'Skill / Gimnásticos', value: 70 },
+    { label: 'Metcon', value: 85 },
+    { label: 'Carga muscular', value: 78 },
+  ]
+
+  const capacityNotes = [
+    {
+      title: 'Fuerza',
+      copy: 'Cargas medias con alta densidad de repeticiones. Deadlifts y lunges marcan la sesión.',
+    },
+    {
+      title: 'Endurance',
+      copy: 'Segmentos de carrera repetidos exigen control de ritmo y respiración nasal en la base.',
+    },
+    {
+      title: 'Velocidad',
+      copy: 'Tramos cortos de carrera permiten cierres agresivos si la técnica se mantiene estable.',
+    },
+    {
+      title: 'Skill / Gimnásticos',
+      copy: 'Toes to bar y BBJO requieren eficiencia técnica para no romper el flujo.',
+    },
+    {
+      title: 'Metcon',
+      copy: 'Bloque mixto continuo con presión cardiovascular sostenida y pocas pausas.',
+    },
+    {
+      title: 'Carga muscular',
+      copy: 'Fatiga acumulada en cuádriceps, glúteo y erectores. Grip activo durante casi todo el WOD.',
+    },
+  ]
+
+  const metrics = [
+    { label: 'Volumen total', value: '210 reps + 2.4 km carrera' },
+    { label: 'Ratio trabajo/descanso', value: '4:1 (micro-pausas planificadas)' },
+    { label: 'Estímulo dominante', value: 'Mixed / Intervalos controlados' },
+    { label: 'Tipo de carga', value: 'Full body con énfasis en empuje y tracción' },
+    { label: 'Dificultad estimada', value: '7.5 / 10' },
+    { label: 'Cadena muscular dominante', value: 'Legs + Core' },
+  ]
+
+  const hyroxStations = [
+    { station: 'SkiErg', transfer: 76 },
+    { station: 'Sled Push', transfer: 82 },
+    { station: 'Sled Pull', transfer: 74 },
+    { station: 'Farmers Carry', transfer: 69 },
+    { station: 'Burpee Broad Jump', transfer: 71 },
+    { station: 'Row', transfer: 68 },
+    { station: 'Sandbag Lunges', transfer: 86 },
+    { station: 'Wall Balls', transfer: 92 },
+  ]
+
+  const equipment = [
+    {
+      name: 'Zapatillas híbridas',
+      price: '€129',
+      description: 'Drop medio, buena tracción para sled y estabilidad en levantamientos.',
+      image:
+        'https://images.unsplash.com/photo-1528701800489-20be9f4444d5?auto=format&fit=crop&w=800&q=60',
+    },
+    {
+      name: 'Cinturón de halterofilia ligero',
+      price: '€79',
+      description: 'Soporte lumbar en deadlifts sin perder movilidad en carrera.',
+      image:
+        'https://images.unsplash.com/photo-1605296867424-35fc25c9212d?auto=format&fit=crop&w=800&q=60',
+    },
+    {
+      name: 'Rodilleras compresivas',
+      price: '€45',
+      description: 'Protección y calor articular para lunges y wall balls largos.',
+      image:
+        'https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=800&q=60',
+    },
+    {
+      name: 'Magnesio líquido',
+      price: '€12',
+      description: 'Control del grip en toes to bar y farmers carry prolongados.',
+      image:
+        'https://images.unsplash.com/photo-1551927411-95e412943b8f?auto=format&fit=crop&w=800&q=60',
+    },
+  ]
+
+  const similarWods = [
+    {
+      title: 'Stim: Chipper agresivo',
+      description: '1.6km run + 40 wall balls + 30 KB swings + 20 burpee box jump overs.',
+    },
+    {
+      title: 'Stim: Intervalos aeróbico-potencia',
+      description: '5 rounds: 500m row, 12 deadlifts 80/55kg, 10 toes to bar, 8 BBJO.',
+    },
+    {
+      title: 'Stim: HYROX prep',
+      description: '4 rounds: 800m run, sled push 15m, sled pull 15m, 20 lunges, 25 wall balls.',
+    },
+  ]
+
+  const weekPlanDays = [
+    { day: 'Día 1', focus: 'Aeróbico base (Z2)', description: '45–60 min zancada o ciclismo, respiración nasal.' },
+    { day: 'Día 2', focus: 'Fuerza', description: 'Back squat + accesorios core/espalda, tempo controlado.' },
+    { day: 'Día 3', focus: 'Mixed modal', description: 'Intervalos con carrera + gimnásticos + sled liviano.' },
+    { day: 'Día 4', focus: 'Técnica HYROX', description: 'Transiciones de estaciones, pacing de wall balls y lunges.' },
+    { day: 'Día 5', focus: 'Carrera/estación', description: 'Repeticiones de 1km run + skill específica (SkiErg/Row).' },
+  ]
+
+  const socialData = {
+    rating: 4.6,
+    votes: 132,
+    meanTime: '13:42',
+    perceivedDifficulty: '7/10',
+    officialTag: 'HYROX friendly',
+    comments: [
+      {
+        author: 'Ana M.',
+        time: '12:55',
+        text: 'Pega fuerte en las piernas, mantener respiración en las carreras marcó la diferencia.',
+      },
+      {
+        author: 'Diego R.',
+        time: '14:20',
+        text: 'Wall balls + BBJO queman; recomiendo dividir en sets pequeños y constantes.',
+      },
+      {
+        author: 'Lucía G.',
+        time: '13:10',
+        text: 'Gran simulación para HYROX, carga moderada pero exige eficiencia técnica.',
+      },
+    ],
+  }
+
+  const timeData = Object.keys(summaryData.times).map((key) => ({
+    level: key,
+    minutes: summaryData.times[key].value,
+    range: summaryData.times[key].range,
+  }))
+
+  const tabs = [
+    {
+      key: 'resumen',
+      label: 'Resumen',
+      content: (
+        <div className="space-y-6">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="card">
+              <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Dominio energético</p>
+              <h3 className="text-2xl font-bold text-white">{summaryData.domain}</h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Intensidad {summaryData.intensity}. Transferencia HYROX {summaryData.transfer}.
+              </p>
+            </div>
+            <div className="card">
+              <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Músculos principales</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {summaryData.muscles.map((muscle) => (
+                  <span
+                    key={muscle}
+                    className="rounded-full bg-neutral-800 px-3 py-1 text-xs font-semibold text-gray-100"
+                  >
+                    {muscle}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-gray-400">{summaryData.athlete}</p>
+            </div>
+            <div className="card">
+              <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Tipo de atleta favorecido</p>
+              <h3 className="mt-2 text-lg font-bold text-white">Motor + potencia de piernas</h3>
+              <p className="mt-2 text-sm text-gray-400">Transferencia a HYROX: {summaryData.transfer}</p>
+              <div className="mt-3 rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-gray-300">
+                {summaryData.wodType}
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-white">Tiempo estimado por nivel</p>
+                <span className="rounded-full bg-neutral-800 px-3 py-1 text-xs uppercase tracking-wide text-gray-300">
+                  Proyección
+                </span>
+              </div>
+              <div className="mt-4 h-52 w-full">
+                <ResponsiveContainer>
+                  <BarChart data={timeData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis
+                      dataKey="level"
+                      tick={{ fill: '#d1d5db', fontSize: 11 }}
+                      axisLine={{ stroke: '#27272a' }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(255, 225, 1, 0.08)' }}
+                      contentStyle={{
+                        background: '#0b0b0b',
+                        border: '1px solid #27272a',
+                        borderRadius: '12px',
+                      }}
+                      formatter={(value, name, props) => [`${value} min (${props.payload.range})`, 'Tiempo']}
+                    />
+                    <Bar dataKey="minutes" fill="#FEE101" radius={[8, 8, 0, 0]} maxBarSize={28} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 text-xs text-gray-400">
+                Valores calculados a partir de la densidad de trabajo y transiciones.
+              </div>
+            </div>
+            <div className="card space-y-3">
+              <p className="text-sm font-semibold text-white">Notas rápidas</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-neutral-800 bg-neutral-900/80 p-3">
+                  <p className="text-xs uppercase text-yellow-400">Pacing recomendado</p>
+                  <p className="mt-1 text-sm text-gray-200">
+                    Carreras en Z3, sets de wall balls 25/15/10, BBJO sin pausa.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-neutral-800 bg-neutral-900/80 p-3">
+                  <p className="text-xs uppercase text-yellow-400">Breaks estratégicos</p>
+                  <p className="mt-1 text-sm text-gray-200">Respira en transiciones, 5-8 seg máximo.</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-neutral-800 bg-gradient-to-r from-neutral-900 to-neutral-800 p-4">
+                <p className="text-xs uppercase text-yellow-400">Atleta objetivo</p>
+                <p className="mt-1 text-sm text-gray-200">
+                  Ideal para preparar combinaciones de carrera + estaciones HYROX sin sacrificar volumen de fuerza.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'hexagono',
+      label: 'Hexágono de Capacidades',
+      content: (
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <RadarChartWOD data={radarData} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {capacityNotes.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+                  <p className="text-xs uppercase tracking-wide text-yellow-400">{item.title}</p>
+                  <p className="mt-2 text-sm text-gray-300">{item.copy}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'detalles',
+      label: 'Detalles Técnicos',
+      content: (
+        <div className="space-y-6">
+          <MetricsTable metrics={metrics} />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="card">
+              <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Pacing recomendado</p>
+              <p className="mt-2 text-sm text-gray-200">
+                Primer run controlado (Z3). Mantén respiración nasal en wall balls y lunges. Empuja en el último 800m.
+              </p>
+            </div>
+            <div className="card">
+              <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Versión RX</p>
+              <p className="mt-2 text-sm text-gray-200">Carga indicada. Sin pausas largas, sets inteligentes 20/15/10.</p>
+            </div>
+            <div className="card">
+              <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Versión Scaled</p>
+              <p className="mt-2 text-sm text-gray-200">
+                Deadlift 60/40kg, wall balls 7/4kg, BBJO step-over permitido, lunges sin carga.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Observaciones IA</p>
+            <p className="mt-2 text-sm text-gray-200">
+              Controla la fatiga lumbar. Divide lunges en sets cortos para no comprometer el patrón de carrera. Calienta
+              con movilidad de cadera y activación de core.
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'hyrox',
+      label: 'Enfoque HYROX',
+      content: (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+              <div className="lg:w-2/5">
+                <p className="text-xs uppercase tracking-[0.14em] text-yellow-400">Estaciones HYROX trabajadas</p>
+                <ul className="mt-3 space-y-2 text-sm text-gray-200">
+                  {hyroxStations.map((item) => (
+                    <li key={item.station} className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-[#FEE101]"></span>
+                        {item.station}
+                      </span>
+                      <span className="text-xs text-gray-300">{item.transfer}%</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="lg:w-3/5">
+                <HyroxStationsChart data={hyroxStations} />
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-4">
+            {[
+              { title: '12+ semanas', tag: 'Base', desc: 'Volumen aeróbico + técnica de estaciones.' },
+              { title: '8–12 semanas', tag: 'Carga', desc: 'Incrementa densidad y sleds moderados.' },
+              { title: '4 semanas', tag: 'Intensidad', desc: 'Bloques race-pace, transiciones rápidas.' },
+              { title: 'Peak week', tag: 'Taper', desc: 'Reduce volumen, mantiene velocidad de estaciones.' },
+            ].map((item) => (
+              <div key={item.title} className="card">
+                <p className="text-xs uppercase text-yellow-400">{item.title}</p>
+                <p className="text-sm font-semibold text-white">{item.tag}</p>
+                <p className="mt-2 text-sm text-gray-300">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-200">
+              Carga de la sesión
+            </span>
+            <span className="rounded-full bg-yellow-400 px-4 py-2 text-xs font-bold uppercase text-black">Moderate/Hard</span>
+            <span className="text-sm text-gray-300">
+              Sensación esperada: cardio sostenido + fatiga de piernas. Ajusta sleds según superficie.
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'material',
+      label: 'Material Recomendado',
+      content: (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {equipment.map((item) => (
+            <div
+              key={item.name}
+              className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-inner shadow-black/40"
+            >
+              <img src={item.image} alt={item.name} className="h-40 w-full object-cover" />
+              <div className="p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <span className="text-xs font-bold text-yellow-400">{item.price}</span>
+                </div>
+                <p className="text-sm text-gray-300">{item.description}</p>
+                <button className="w-full rounded-full border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold text-white hover:border-yellow-400 hover:text-yellow-200">
+                  Comparar precios
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: 'similares',
+      label: 'WODs Similares y Semana Recomendada',
+      content: (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-white">WODs similares</p>
+            <div className="space-y-3">
+              {similarWods.map((wod) => (
+                <div key={wod.title} className="card">
+                  <p className="text-xs uppercase text-yellow-400">{wod.title}</p>
+                  <p className="mt-1 text-sm text-gray-200">{wod.description}</p>
+                  <button className="mt-3 inline-flex items-center rounded-full border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold text-white hover:border-yellow-400 hover:text-yellow-200">
+                    Ver WOD
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-white">Semana recomendada</p>
+            <WeekPlan days={weekPlanDays} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'social',
+      label: 'Valoración Social',
+      content: (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="card">
+              <p className="text-xs uppercase text-yellow-400">Rating</p>
+              <p className="text-3xl font-extrabold text-white">
+                {socialData.rating.toFixed(1)}
+                <span className="text-lg font-semibold text-gray-300"> / 5</span>
+              </p>
+              <div className="mt-2 flex items-center gap-1 text-yellow-400">
+                {'★★★★★☆☆☆☆☆'.slice(0, Math.round(socialData.rating))}
+              </div>
+              <p className="text-sm text-gray-400">{socialData.votes} registros</p>
+            </div>
+            <div className="card">
+              <p className="text-xs uppercase text-yellow-400">Tiempo medio</p>
+              <p className="text-2xl font-bold text-white">{socialData.meanTime}</p>
+              <p className="mt-1 text-sm text-gray-400">Dificultad percibida: {socialData.perceivedDifficulty}</p>
+              <p className="mt-2 text-xs uppercase text-yellow-400">{socialData.officialTag}</p>
+            </div>
+            <div className="card flex flex-col justify-between">
+              <div>
+                <p className="text-xs uppercase text-yellow-400">Añade tu marca</p>
+                <p className="mt-1 text-sm text-gray-200">Compara tu tiempo y feeling con la comunidad.</p>
+              </div>
+              <button className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#FEE101] px-4 py-2 text-sm font-semibold text-black">
+                Añadir mi tiempo
+              </button>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-white">Comentarios destacados</p>
+            <div className="grid gap-3 md:grid-cols-3">
+              {socialData.comments.map((comment) => (
+                <div key={comment.author} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">{comment.author}</p>
+                    <span className="text-xs text-gray-400">{comment.time}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-300">{comment.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+  ]
+
   return (
-    <div className="wod-analysis-container1">
+    <div className="wod-analysis-page min-h-screen bg-neutral-950 text-gray-100">
       <Helmet>
-        <title>WOD-Analysis - Thrifty Distant Woodpecker</title>
+        <title>Analizador de WOD - HYROX / CrossFit</title>
         <meta
           property="og:title"
-          content="WOD-Analysis - Thrifty Distant Woodpecker"
-        />
-        <link
-          rel="canonical"
-          href="https://thrifty-distant-woodpecker-ne0gsv.teleporthq.app/wod-analysis"
+          content="Analizador de WOD - HYROX / CrossFit"
         />
       </Helmet>
-      <Navigation></Navigation>
-      <section className="hero-wod">
-        <div className="hero-wod-background">
-          <img
-            alt="Atleta realizando deadlift en gimnasio"
-            src="https://images.pexels.com/photos/791763/pexels-photo-791763.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-            className="hero-wod-image"
-          />
-          <div className="hero-wod-overlay"></div>
-        </div>
-        <div className="hero-wod-content">
-          <div className="hero-wod-container">
-            <div className="hero-wod-text">
-              <h1 className="hero-title">
-                <span>
-                  {' '}
-                  ANÁLISIS
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </span>
-                <br></br>
-                <span>
-                  {' '}
-                  DE WOD
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </span>
+      <Navigation />
+      <main className="wod-analysis-shell">
+        <section className="wod-hero relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-950"></div>
+          <div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 lg:flex-row lg:items-start">
+            <div className="flex-1 space-y-5">
+              <p className="text-xs uppercase tracking-[0.3em] text-yellow-400">Analizador de WOD</p>
+              <h1 className="text-4xl font-extrabold uppercase leading-tight text-white md:text-5xl">
+                Análisis completo de tu WOD
               </h1>
-              <p className="hero-subtitle">
-                {' '}
-                Evaluación inteligente con IA para atletas híbridos. Optimiza
-                cada entrenamiento, maximiza tu rendimiento.
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
+              <p className="text-lg text-gray-300">
+                Tipo de WOD detectado: {summaryData.wodType}. Optimizado para híbridos que buscan transferir a HYROX y
+                CrossFit sin perder control de intensidad.
               </p>
-              <div className="hero-wod-actions">
-                <button className="btn btn-accent btn-lg">
-                  Analizar WOD Ahora
+              <div className="flex flex-wrap gap-3">
+                <button className="rounded-full bg-[#FEE101] px-5 py-3 text-sm font-semibold uppercase text-black shadow-lg shadow-yellow-500/30">
+                  Guardar WOD
                 </button>
-                <button className="btn btn-lg btn-outline">Ver Demo</button>
+                <button className="rounded-full border border-neutral-800 bg-transparent px-5 py-3 text-sm font-semibold uppercase text-white hover:border-yellow-400 hover:text-yellow-200">
+                  Analizar otro WOD
+                </button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="mini-card">
+                  <p className="text-xs uppercase text-gray-400">Dominio</p>
+                  <p className="text-xl font-bold text-white">{summaryData.domain}</p>
+                  <p className="text-xs text-gray-400">Metabólico mixto controlado</p>
+                </div>
+                <div className="mini-card">
+                  <p className="text-xs uppercase text-gray-400">Intensidad</p>
+                  <p className="text-xl font-bold text-white">{summaryData.intensity}</p>
+                  <p className="text-xs text-gray-400">Z3-Z4 progresiva</p>
+                </div>
+                <div className="mini-card">
+                  <p className="text-xs uppercase text-gray-400">Transfer HYROX</p>
+                  <p className="text-xl font-bold text-yellow-400">{summaryData.transfer}</p>
+                  <p className="text-xs text-gray-400">Wall balls, lunges, carrera</p>
+                </div>
               </div>
             </div>
-            <div className="hero-wod-stats">
-              <div className="hero-wod-stat">
-                <span className="hero-wod-stat-number">98%</span>
-                <span className="hero-wod-stat-label">Precisión</span>
-              </div>
-              <div className="hero-wod-stat">
-                <span className="hero-wod-stat-number">15K+</span>
-                <span className="hero-wod-stat-label">WODs Analizados</span>
-              </div>
-              <div className="hero-wod-stat">
-                <span className="hero-wod-stat-number">2.3x</span>
-                <span className="hero-wod-stat-label">Mejora Media</span>
+            <div className="flex-1">
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 shadow-2xl shadow-black/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-white">WOD original</p>
+                  <span className="rounded-full bg-neutral-800 px-3 py-1 text-xs text-gray-200">Input usuario</span>
+                </div>
+                <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-neutral-900 px-4 py-4 text-sm text-gray-100 shadow-inner shadow-black/30">
+                  {wodText}
+                </pre>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-      <section className="features-wod">
-        <div className="features-wod-container">
-          <div className="features-wod-grid">
-            <div className="features-wod-card">
-              <div className="features-wod-icon">
-                <svg
-                  width="48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="48"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 18V5m3 8a4.17 4.17 0 0 1-3-4a4.17 4.17 0 0 1-3 4m8.598-6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"></path>
-                    <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"></path>
-                    <path d="M18 18a4 4 0 0 0 2-7.464"></path>
-                    <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"></path>
-                    <path d="M6 18a4 4 0 0 1-2-7.464"></path>
-                    <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"></path>
-                  </g>
-                </svg>
-              </div>
-              <h2 className="section-title">Evaluación con IA</h2>
-              <p className="section-content">
-                {' '}
-                Algoritmos avanzados de machine learning analizan cada
-                componente de tu WOD: movimientos, volumen, intensidad y balance
-                metabólico para ofrecerte insights precisos y accionables.
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
-              </p>
-            </div>
-            <div className="features-wod-card">
-              <div className="features-wod-icon">
-                <svg
-                  width="48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="48"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle r="10" cx="12" cy="12"></circle>
-                    <circle r="6" cx="12" cy="12"></circle>
-                    <circle r="2" cx="12" cy="12"></circle>
-                  </g>
-                </svg>
-              </div>
-              <h2 className="section-title">Optimización Personalizada</h2>
-              <p className="section-content">
-                {' '}
-                Recibe recomendaciones específicas basadas en tu perfil
-                atlético, objetivos y nivel de rendimiento. Ajusta cargas,
-                tiempos de descanso y selección de ejercicios para maximizar
-                resultados.
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
-              </p>
-            </div>
-            <div className="features-wod-card">
-              <div className="features-wod-icon">
-                <svg
-                  width="48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="48"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
-                    <path d="m19 9l-5 5l-4-4l-3 3"></path>
-                  </g>
-                </svg>
-              </div>
-              <h2 className="section-title">Métricas en Tiempo Real</h2>
-              <p className="section-content">
-                {' '}
-                Visualiza puntuaciones de dificultad, estimación de tiempo,
-                demanda energética y compatibilidad con tu equipamiento. Datos
-                actualizados instantáneamente para decisiones informadas.
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
-              </p>
-            </div>
+        </section>
+
+        <section className="py-10">
+          <div className="mx-auto max-w-6xl px-6">
+            <Tabs tabs={tabs} defaultActive="resumen" />
           </div>
-        </div>
-      </section>
-      <section className="process-wod">
-        <div className="process-wod-container">
-          <h2 className="section-title process-wod-heading">
-            Cómo Funciona el Análisis
-          </h2>
-          <p className="process-wod-intro section-content">
-            {' '}
-            Cuatro pasos para transformar tus entrenamientos
-            <span
-              dangerouslySetInnerHTML={{
-                __html: ' ',
-              }}
-            />
-          </p>
-          <div className="process-wod-tabs">
-            <button
-              data-tab="1"
-              className="process-wod-tab process-wod-tab-active"
-            >
-              <span className="wod-analysis-process-wod-tab-number1">01</span>
-              <span className="wod-analysis-process-wod-tab-title1">
-                Entrada de WOD
-              </span>
-            </button>
-            <button data-tab="2" className="process-wod-tab">
-              <span className="wod-analysis-process-wod-tab-number2">02</span>
-              <span className="wod-analysis-process-wod-tab-title2">
-                Análisis Automático
-              </span>
-            </button>
-            <button data-tab="3" className="process-wod-tab">
-              <span className="wod-analysis-process-wod-tab-number3">03</span>
-              <span className="wod-analysis-process-wod-tab-title3">
-                Insights Profundos
-              </span>
-            </button>
-            <button data-tab="4" className="process-wod-tab">
-              <span className="wod-analysis-process-wod-tab-number4">04</span>
-              <span className="wod-analysis-process-wod-tab-title4">
-                Recomendaciones
-              </span>
-            </button>
-          </div>
-          <div className="process-wod-content">
-            <div
-              data-panel="1"
-              className="process-wod-panel-active process-wod-panel"
-            >
-              <div className="process-wod-panel-grid">
-                <div className="process-wod-panel-text">
-                  <div className="process-wod-icon">
-                    <svg
-                      width="64"
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="64"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M12 3v12m5-7l-5-5l-5 5m14 7v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      ></path>
-                    </svg>
-                  </div>
-                  <h3 className="process-wod-panel-title">
-                    Introduce tu Entrenamiento
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Escribe o pega tu WOD directamente en el analizador. También
-                    puedes seleccionar de nuestra biblioteca de entrenamientos
-                    populares de CrossFit, HYROX, y funcional.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                  <ul className="process-wod-list">
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Formato libre o estructurado</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Biblioteca de 500+ WODs</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Importación desde apps</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="process-wod-panel-visual">
-                  <img
-                    alt="Atletas entrenando en gimnasio"
-                    src="https://images.pexels.com/photos/6388386/pexels-photo-6388386.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                  />
-                </div>
-              </div>
-            </div>
-            <div data-panel="2" className="process-wod-panel">
-              <div className="process-wod-panel-grid">
-                <div className="process-wod-panel-text">
-                  <div className="process-wod-icon">
-                    <svg
-                      width="64"
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="64"
-                      viewBox="0 0 24 24"
-                    >
-                      <g
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
-                        <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2m-8-4v-5m3 5v-1m3 1v-3"></path>
-                      </g>
-                    </svg>
-                  </div>
-                  <h3 className="process-wod-panel-title">
-                    Procesamiento Inteligente
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Nuestra IA identifica automáticamente movimientos,
-                    estructura del entrenamiento, modalidades metabólicas y
-                    requisitos de equipamiento en segundos.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                  <ul className="process-wod-list">
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Reconocimiento de ejercicios</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Cálculo de volumen total</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Análisis de intensidad</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="process-wod-panel-visual">
-                  <img
-                    alt="Atleta levantando barra en gimnasio"
-                    src="https://images.pexels.com/photos/1092874/pexels-photo-1092874.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                  />
-                </div>
-              </div>
-            </div>
-            <div data-panel="3" className="process-wod-panel">
-              <div className="process-wod-panel-grid">
-                <div className="process-wod-panel-text">
-                  <div className="process-wod-icon">
-                    <svg
-                      width="64"
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="64"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M15 14c.2-1 .7-1.7 1.5-2.5c1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5c.7.7 1.3 1.5 1.5 2.5m0 4h6m-5 4h4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      ></path>
-                    </svg>
-                  </div>
-                  <h3 className="process-wod-panel-title">
-                    Evaluación Completa
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Obtén puntuaciones detalladas de dificultad técnica, demanda
-                    cardiovascular, carga muscular, y balance entre modalidades
-                    gimnásticas, metabólicas y de levantamiento.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                  <ul className="process-wod-list">
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Score de dificultad 1-10</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Estimación de tiempo</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Distribución energética</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="process-wod-panel-visual">
-                  <img
-                    alt="Atleta haciendo push-ups"
-                    src="https://images.pexels.com/photos/6388382/pexels-photo-6388382.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                  />
-                </div>
-              </div>
-            </div>
-            <div data-panel="4" className="process-wod-panel">
-              <div className="process-wod-panel-grid">
-                <div className="process-wod-panel-text">
-                  <div className="process-wod-icon">
-                    <svg
-                      width="64"
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="64"
-                      viewBox="0 0 24 24"
-                    >
-                      <g
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978m7-7.318v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978M18 9h1.5a1 1 0 0 0 0-5H18M4 22h16"></path>
-                        <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm0 0H4.5a1 1 0 0 1 0-5H6"></path>
-                      </g>
-                    </svg>
-                  </div>
-                  <h3 className="process-wod-panel-title">Plan de Acción</h3>
-                  <p className="section-content">
-                    {' '}
-                    Recibe estrategias de pacing, escalamientos recomendados,
-                    sugerencias de equipamiento óptimo y modificaciones
-                    adaptadas a tu nivel de rendimiento actual.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                  <ul className="process-wod-list">
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Estrategia de ritmo</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Equipo recomendado</span>
-                    </li>
-                    <li className="process-wod-list-item">
-                      <svg
-                        width="20"
-                        xmlns="http://www.w3.org/2000/svg"
-                        height="20"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        ></path>
-                      </svg>
-                      <span>Escalamientos personalizados</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="process-wod-panel-visual">
-                  <img
-                    alt="Atleta en anillas gimnásticas"
-                    src="https://images.pexels.com/photos/14913358/pexels-photo-14913358.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="gallery-wod">
-        <div className="gallery-wod-background">
-          <div className="gallery-wod-overlay"></div>
-        </div>
-        <div className="gallery-wod-content">
-          <div className="gallery-wod-header">
-            <h2 className="section-title">Equipamiento Compatible</h2>
-            <p className="section-content">
-              {' '}
-              Material deportivo evaluado y optimizado para máximo rendimiento
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: ' ',
-                }}
-              />
-            </p>
-          </div>
-          <div className="gallery-wod-grid">
-            <div className="gallery-wod-card-spotlight gallery-wod-card">
-              <div className="gallery-wod-card-image">
-                <img
-                  alt="Zapatillas de cross-training"
-                  src="https://images.pexels.com/photos/1464625/pexels-photo-1464625.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                />
-              </div>
-              <div className="gallery-wod-card-content">
-                <div className="gallery-wod-card-badge">
-                  <span>MEJOR VALORADO</span>
-                </div>
-                <h3 className="gallery-wod-card-title">
-                  {' '}
-                  Zapatillas Cross-Training Elite
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </h3>
-                <p className="gallery-wod-card-description">
-                  {' '}
-                  Estabilidad superior para levantamientos pesados y movilidad
-                  para cardio intenso
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </p>
-                <div className="gallery-wod-card-rating">
-                  <svg
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                  <span className="gallery-wod-card-score">9.8/10</span>
-                  <span className="gallery-wod-card-reviews">
-                    1,240 reviews
-                  </span>
-                </div>
-                <div className="gallery-wod-card-features">
-                  <span className="gallery-wod-card-feature">
-                    WOD Compatible
-                  </span>
-                  <span className="gallery-wod-card-feature">
-                    HYROX Certified
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="gallery-wod-card">
-              <div className="gallery-wod-card-image">
-                <img
-                  alt="Rodilleras deportivas"
-                  src="https://images.pexels.com/photos/19882424/pexels-photo-19882424.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                />
-              </div>
-              <div className="gallery-wod-card-content">
-                <h3 className="gallery-wod-card-title">Rodilleras Pro</h3>
-                <p className="gallery-wod-card-description">
-                  {' '}
-                  Soporte óptimo sin comprometer movilidad
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </p>
-                <div className="gallery-wod-card-rating">
-                  <svg
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                  <span className="gallery-wod-card-score">9.3/10</span>
-                </div>
-              </div>
-            </div>
-            <div className="gallery-wod-card">
-              <div className="gallery-wod-card-image">
-                <img
-                  alt="Calleras gimnásticas"
-                  src="https://images.pexels.com/photos/29699313/pexels-photo-29699313.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                />
-              </div>
-              <div className="gallery-wod-card-content">
-                <h3 className="gallery-wod-card-title">Calleras Gymnastic</h3>
-                <p className="gallery-wod-card-description">
-                  {' '}
-                  Agarre seguro para pull-ups y muscle-ups
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </p>
-                <div className="gallery-wod-card-rating">
-                  <svg
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                  <span className="gallery-wod-card-score">9.5/10</span>
-                </div>
-              </div>
-            </div>
-            <div className="gallery-wod-card">
-              <div className="gallery-wod-card-image">
-                <img
-                  alt="Cinturón de levantamiento"
-                  src="https://images.pexels.com/photos/6740822/pexels-photo-6740822.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                />
-              </div>
-              <div className="gallery-wod-card-content">
-                <h3 className="gallery-wod-card-title">Cinturón Lifting Pro</h3>
-                <p className="gallery-wod-card-description">
-                  {' '}
-                  Estabilización lumbar en levantamientos
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </p>
-                <div className="gallery-wod-card-rating">
-                  <svg
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                  <span className="gallery-wod-card-score">9.6/10</span>
-                </div>
-              </div>
-            </div>
-            <div className="gallery-wod-card">
-              <div className="gallery-wod-card-image">
-                <img
-                  alt="Grips para barra"
-                  src="https://images.pexels.com/photos/22745630/pexels-photo-22745630.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                />
-              </div>
-              <div className="gallery-wod-card-content">
-                <h3 className="gallery-wod-card-title">Grips Carbon Fiber</h3>
-                <p className="gallery-wod-card-description">
-                  {' '}
-                  Protección manos en altos volúmenes
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </p>
-                <div className="gallery-wod-card-rating">
-                  <svg
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                  <span className="gallery-wod-card-score">9.4/10</span>
-                </div>
-              </div>
-            </div>
-            <div className="gallery-wod-card">
-              <div className="gallery-wod-card-image">
-                <img
-                  alt="Kit HYROX completo"
-                  src="https://images.pexels.com/photos/179908/pexels-photo-179908.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-                />
-              </div>
-              <div className="gallery-wod-card-content">
-                <h3 className="gallery-wod-card-title">Kit HYROX Complete</h3>
-                <p className="gallery-wod-card-description">
-                  {' '}
-                  Pack completo para competiciones
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: ' ',
-                    }}
-                  />
-                </p>
-                <div className="gallery-wod-card-rating">
-                  <svg
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="20"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                  <span className="gallery-wod-card-score">9.7/10</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="stats-wod">
-        <div className="stats-wod-background">
-          <div className="stats-wod-gradient"></div>
-        </div>
-        <div className="stats-wod-content">
-          <div className="stats-wod-grid">
-            <div className="stats-wod-card">
-              <div className="stats-wod-icon">
-                <svg
-                  width="48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="48"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle r="10" cx="12" cy="12"></circle>
-                    <circle r="6" cx="12" cy="12"></circle>
-                    <circle r="2" cx="12" cy="12"></circle>
-                  </g>
-                </svg>
-              </div>
-              <div className="stats-wod-number">
-                <span>98.4%</span>
-              </div>
-              <div className="stats-wod-label">
-                <span>Precisión de Análisis</span>
-              </div>
-              <p className="stats-wod-description">
-                {' '}
-                Validado por atletas profesionales y entrenadores certificados
-                en 15,000+ entrenamientos
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
-              </p>
-            </div>
-            <div className="stats-wod-card">
-              <div className="stats-wod-icon">
-                <svg
-                  width="48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="48"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="m5 12l7-7l7 7m-7 7V5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                </svg>
-              </div>
-              <div className="stats-wod-number">
-                <span>+127%</span>
-              </div>
-              <div className="stats-wod-label">
-                <span>Mejora en Rendimiento</span>
-              </div>
-              <p className="stats-wod-description">
-                {' '}
-                Incremento promedio en métricas de fuerza, resistencia y tiempo
-                en atletas que usan análisis
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
-              </p>
-            </div>
-            <div className="stats-wod-card">
-              <div className="stats-wod-icon">
-                <svg
-                  width="48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="48"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978m7-7.318v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978M18 9h1.5a1 1 0 0 0 0-5H18M4 22h16"></path>
-                    <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm0 0H4.5a1 1 0 0 1 0-5H6"></path>
-                  </g>
-                </svg>
-              </div>
-              <div className="stats-wod-number">
-                <span>4.9/5</span>
-              </div>
-              <div className="stats-wod-label">
-                <span>Satisfacción de Usuario</span>
-              </div>
-              <p className="stats-wod-description">
-                {' '}
-                Más de 8,500 atletas activos confían en HYBRIDFORCE para
-                optimizar sus entrenamientos
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: ' ',
-                  }}
-                />
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="video-wod">
-        <div className="video-wod-container">
-          <video
-            src="https://videos.pexels.com/video-files/5320011/5320011-hd_1080_1920_25fps.mp4"
-            loop="true"
-            muted="true"
-            poster="https://images.pexels.com/videos/5320011/pictures/preview-0.jpeg"
-            autoPlay="true"
-            playsInline="true"
-            className="video-wod-player"
-          ></video>
-          <div className="video-wod-overlay"></div>
-          <div className="video-wod-content">
-            <button aria-label="Reproducir video" className="video-wod-play">
-              <svg
-                width="64"
-                xmlns="http://www.w3.org/2000/svg"
-                height="64"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-            </button>
-            <h2 className="section-title">WOD Analysis en Acción</h2>
-            <p className="section-content">
-              {' '}
-              Descubre cómo atletas profesionales utilizan nuestra plataforma
-              para maximizar resultados
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: ' ',
-                }}
-              />
-            </p>
-          </div>
-        </div>
-      </section>
-      <section className="cta-wod">
-        <div className="cta-wod-background">
-          <img
-            alt="Atleta entrenando con intensidad"
-            src="https://images.pexels.com/photos/3112004/pexels-photo-3112004.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=1500"
-            className="cta-wod-image"
-          />
-          <div className="cta-wod-overlay"></div>
-        </div>
-        <div className="cta-wod-content">
-          <div className="cta-wod-featured">
-            <h2 className="section-title">
-              Lleva tu Entrenamiento al Siguiente Nivel
-            </h2>
-            <p className="section-content">
-              {' '}
-              Únete a más de 8,500 atletas híbridos que optimizan cada WOD con
-              análisis inteligente. Prueba gratis durante 14 días, sin tarjeta
-              de crédito.
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: ' ',
-                }}
-              />
-            </p>
-            <div className="cta-wod-actions">
-              <button className="btn btn-accent btn-xl">
-                Comenzar Análisis Gratis
-              </button>
-              <button className="btn btn-xl btn-outline">
-                Solicitar Demo en Vivo
-              </button>
-            </div>
-            <div className="cta-wod-benefits">
-              <div className="cta-wod-benefit">
-                <svg
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="24"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                </svg>
-                <span>14 días gratis</span>
-              </div>
-              <div className="cta-wod-benefit">
-                <svg
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="24"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                </svg>
-                <span>Sin tarjeta requerida</span>
-              </div>
-              <div className="cta-wod-benefit">
-                <svg
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="24"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                </svg>
-                <span>Cancela cuando quieras</span>
-              </div>
-            </div>
-          </div>
-          <div className="cta-wod-secondary">
-            <div className="cta-wod-card">
-              <div className="cta-wod-card-icon">
-                <svg
-                  width="32"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="32"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 18V5m3 8a4.17 4.17 0 0 1-3-4a4.17 4.17 0 0 1-3 4m8.598-6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"></path>
-                    <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"></path>
-                    <path d="M18 18a4 4 0 0 0 2-7.464"></path>
-                    <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"></path>
-                    <path d="M6 18a4 4 0 0 1-2-7.464"></path>
-                    <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"></path>
-                  </g>
-                </svg>
-              </div>
-              <h3 className="cta-wod-card-title">IA Avanzada</h3>
-              <p className="cta-wod-card-text">
-                Análisis profundo con machine learning
-              </p>
-            </div>
-            <div className="cta-wod-card">
-              <div className="cta-wod-card-icon">
-                <svg
-                  width="32"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="32"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
-                    <path d="m19 9l-5 5l-4-4l-3 3"></path>
-                  </g>
-                </svg>
-              </div>
-              <h3 className="cta-wod-card-title">Progreso Medible</h3>
-              <p className="cta-wod-card-text">
-                Tracking completo de rendimiento
-              </p>
-            </div>
-            <div className="cta-wod-card">
-              <div className="cta-wod-card-icon">
-                <svg
-                  width="32"
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="32"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle r="10" cx="12" cy="12"></circle>
-                    <circle r="6" cx="12" cy="12"></circle>
-                    <circle r="2" cx="12" cy="12"></circle>
-                  </g>
-                </svg>
-              </div>
-              <h3 className="cta-wod-card-title">Personalización Total</h3>
-              <p className="cta-wod-card-text">
-                Adaptado a tu nivel y objetivos
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="about-wod">
-        <div className="about-wod-container">
-          <div className="about-wod-header">
-            <h2 className="section-title">Preguntas Frecuentes</h2>
-            <p className="section-content">
-              {' '}
-              Todo lo que necesitas saber sobre WOD Analysis
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: ' ',
-                }}
-              />
-            </p>
-          </div>
-          <div className="about-wod-carousel">
-            <button
-              aria-label="Anterior"
-              className="about-wod-arrow about-wod-arrow-prev"
-            >
-              <svg
-                width="32"
-                xmlns="http://www.w3.org/2000/svg"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="m15 18l-6-6l6-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-            </button>
-            <div className="about-wod-track">
-              <div className="about-wod-slide about-wod-slide-active">
-                <div className="about-wod-card">
-                  <h3 className="about-wod-question">
-                    {' '}
-                    ¿Cómo funciona la evaluación con IA?
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Nuestra IA analiza más de 50 parámetros de tu WOD incluyendo
-                    movimientos, volumen, intensidad, balance metabólico y
-                    requisitos técnicos. Utiliza algoritmos de machine learning
-                    entrenados con más de 100,000 entrenamientos de atletas de
-                    élite y proporciona puntuaciones precisas y recomendaciones
-                    personalizadas en segundos.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                </div>
-              </div>
-              <div className="about-wod-slide">
-                <div className="about-wod-card">
-                  <h3 className="about-wod-question">
-                    {' '}
-                    ¿Mis datos de entrenamiento están seguros?
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Absolutamente. Utilizamos encriptación de nivel bancario
-                    (AES-256) para todos tus datos. Nunca compartimos tu
-                    información con terceros. Tus entrenamientos, métricas y
-                    progreso son 100% privados. Cumplimos con GDPR y estándares
-                    internacionales de privacidad. Puedes exportar o eliminar
-                    tus datos en cualquier momento.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                </div>
-              </div>
-              <div className="about-wod-slide">
-                <div className="about-wod-card">
-                  <h3 className="about-wod-question">
-                    {' '}
-                    ¿El análisis es compatible con todo tipo de WODs?
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Sí. Analizamos CrossFit, HYROX, entrenamientos funcionales,
-                    OCR, y combinaciones híbridas. Reconocemos más de 500
-                    movimientos diferentes: gimnásticos, levantamientos
-                    olímpicos, powerlifting, cardio metabólico y ejercicios
-                    funcionales. Si es un entrenamiento estructurado, podemos
-                    analizarlo.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                </div>
-              </div>
-              <div className="about-wod-slide">
-                <div className="about-wod-card">
-                  <h3 className="about-wod-question">
-                    {' '}
-                    ¿Cómo se integra con mi equipamiento actual?
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    El análisis incluye recomendaciones de equipamiento óptimo
-                    basadas en los movimientos de tu WOD. Evaluamos
-                    compatibilidad con zapatillas, cinturones, rodilleras,
-                    calleras y grips. También proporcionamos alternativas si no
-                    tienes cierto equipamiento. Nuestras recomendaciones están
-                    validadas por atletas profesionales.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                </div>
-              </div>
-              <div className="about-wod-slide">
-                <div className="about-wod-card">
-                  <h3 className="about-wod-question">
-                    {' '}
-                    ¿Puedo usar el análisis para programar entrenamientos?
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </h3>
-                  <p className="section-content">
-                    {' '}
-                    Definitivamente. El análisis es ideal para coaches y atletas
-                    que programan sus propios entrenamientos. Te ayudamos a
-                    equilibrar volumen, intensidad y recuperación. Puedes
-                    analizar sesiones individuales o ciclos completos de
-                    entrenamiento. Identificamos sobrecargas, desequilibrios
-                    musculares y optimizamos tu periodización.
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: ' ',
-                      }}
-                    />
-                  </p>
-                </div>
-              </div>
-            </div>
-            <button
-              aria-label="Siguiente"
-              className="about-wod-arrow-next about-wod-arrow"
-            >
-              <svg
-                width="32"
-                xmlns="http://www.w3.org/2000/svg"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="m9 18l6-6l-6-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-            </button>
-          </div>
-          <div className="about-wod-indicators">
-            <button
-              aria-label="Diapositiva 1"
-              data-slide="0"
-              className="about-wod-indicator-active about-wod-indicator"
-            ></button>
-            <button
-              aria-label="Diapositiva 2"
-              data-slide="1"
-              className="about-wod-indicator"
-            ></button>
-            <button
-              aria-label="Diapositiva 3"
-              data-slide="2"
-              className="about-wod-indicator"
-            ></button>
-            <button
-              aria-label="Diapositiva 4"
-              data-slide="3"
-              className="about-wod-indicator"
-            ></button>
-            <button
-              aria-label="Diapositiva 5"
-              data-slide="4"
-              className="about-wod-indicator"
-            ></button>
-          </div>
-        </div>
-      </section>
-      <div className="wod-analysis-container2">
-        <div className="wod-analysis-container3">
-          <Script
-            html={`<style>
-        @keyframes fadeIn {from {opacity: 0;
-transform: translateY(20px);}
-to {opacity: 1;
-transform: translateY(0);}}@keyframes slideIn {from {opacity: 0;
-transform: translateX(40px);}
-to {opacity: 1;
-transform: translateX(0);}}
-        </style> `}
-          ></Script>
-        </div>
-      </div>
-      <div className="wod-analysis-container4">
-        <div className="wod-analysis-container5">
-          <Script
-            html={`<script defer data-name="wod-analysis-interactions">
-(function(){
-  const processTabs = document.querySelectorAll(".process-wod-tab")
-  const processPanels = document.querySelectorAll(".process-wod-panel")
-
-  processTabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const targetPanel = tab.getAttribute("data-tab")
-
-      processTabs.forEach((t) => t.classList.remove("process-wod-tab-active"))
-      processPanels.forEach((p) =>
-        p.classList.remove("process-wod-panel-active")
-      )
-
-      tab.classList.add("process-wod-tab-active")
-      document
-        .querySelector(\`.process-wod-panel[data-panel="\${targetPanel}"]\`)
-        .classList.add("process-wod-panel-active")
-    })
-  })
-
-  const carouselSlides = document.querySelectorAll(".about-wod-slide")
-  const carouselIndicators = document.querySelectorAll(".about-wod-indicator")
-  const prevButton = document.querySelector(".about-wod-arrow-prev")
-  const nextButton = document.querySelector(".about-wod-arrow-next")
-  let currentSlide = 0
-
-  function showSlide(index) {
-    carouselSlides.forEach((slide) =>
-      slide.classList.remove("about-wod-slide-active")
-    )
-    carouselIndicators.forEach((indicator) =>
-      indicator.classList.remove("about-wod-indicator-active")
-    )
-
-    carouselSlides[index].classList.add("about-wod-slide-active")
-    carouselIndicators[index].classList.add("about-wod-indicator-active")
-  }
-
-  function nextSlide() {
-    currentSlide = (currentSlide + 1) % carouselSlides.length
-    showSlide(currentSlide)
-  }
-
-  function prevSlide() {
-    currentSlide =
-      (currentSlide - 1 + carouselSlides.length) % carouselSlides.length
-    showSlide(currentSlide)
-  }
-
-  nextButton.addEventListener("click", nextSlide)
-  prevButton.addEventListener("click", prevSlide)
-
-  carouselIndicators.forEach((indicator, index) => {
-    indicator.addEventListener("click", () => {
-      currentSlide = index
-      showSlide(currentSlide)
-    })
-  })
-
-  const videoPlayer = document.querySelector(".video-wod-player")
-  const videoPlayButton = document.querySelector(".video-wod-play")
-
-  videoPlayButton.addEventListener("click", () => {
-    if (videoPlayer.paused) {
-      videoPlayer.play()
-      videoPlayButton.style.opacity = "0"
-    } else {
-      videoPlayer.pause()
-      videoPlayButton.style.opacity = "1"
-    }
-  })
-
-  videoPlayer.addEventListener("click", () => {
-    if (videoPlayer.paused) {
-      videoPlayer.play()
-      videoPlayButton.style.opacity = "0"
-    } else {
-      videoPlayer.pause()
-      videoPlayButton.style.opacity = "1"
-    }
-  })
-
-  const heroImage = document.querySelector(".hero-wod-image")
-  let lastScrollTop = 0
-
-  window.addEventListener(
-    "scroll",
-    () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      const parallaxSpeed = 0.3
-
-      if (scrollTop < window.innerHeight) {
-        heroImage.style.transform = \`translateY(\${
-          scrollTop * parallaxSpeed
-        }px) scale(1.1)\`
-      }
-
-      lastScrollTop = scrollTop
-    },
-    { passive: true }
-  )
-})()
-</script>`}
-          ></Script>
-        </div>
-      </div>
-      <Footer></Footer>
+        </section>
+      </main>
+      <Footer />
     </div>
   )
 }
