@@ -1538,7 +1538,7 @@ const Home = (props) => {
                   type="email"
                   id="thq_textinput_slqW"
                   name="textinput"
-                  required="true"
+                  required
                   placeholder="tu@email.com"
                   data-form-field-id="thq_textinput_slqW"
                   className="cta-input"

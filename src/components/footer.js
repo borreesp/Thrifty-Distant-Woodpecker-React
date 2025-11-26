@@ -59,7 +59,7 @@ const Footer = (props) => {
                   type="email"
                   id="newsletter-email"
                   name="textinput"
-                  required="true"
+                  required
                   placeholder="tu@email.com"
                   data-form-field-id="newsletter-email"
                   className="footer-input"
