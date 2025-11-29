@@ -1,10 +1,13 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "Node",
     "jsx": "preserve",
     "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
@@ -16,7 +19,8 @@
       "@thrifty/config": ["packages/config/index.ts"],
       "@thrifty/utils": ["packages/utils/src/index.ts"],
       "@thrifty/utils/*": ["packages/utils/src/*"]
-    }
+    },
+    "types": ["react", "react-dom", "node"]
   },
   "include": ["apps", "packages"],
   "exclude": ["node_modules", "build", "dist"]
