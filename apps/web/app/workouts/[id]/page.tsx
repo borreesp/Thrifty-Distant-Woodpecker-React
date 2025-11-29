@@ -2,7 +2,7 @@ import React from "react";
 import { Section } from "@thrifty/ui";
 import { WorkoutDetailHeader } from "../../../components/workout/WorkoutDetailHeader";
 import { HexStatCard } from "../../../components/workout/HexStatCard";
-import { AthleteRadarChart } from "../../../components/workout/AthleteRadarChart";
+import { HexRadarChart } from "../../../components/charts/HexRadarChart";
 import { WorkoutBlockCard } from "../../../components/workout/WorkoutBlockCard";
 import { GearMiniCard } from "../../../components/workout/GearMiniCard";
 import { PhysioBenefitCard } from "../../../components/workout/PhysioBenefitCard";
@@ -99,7 +99,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       </Section>
 
       <Section title="Impacto en habilidades">
-        <AthleteRadarChart data={radarData} />
+        <HexRadarChart data={radarData} />
       </Section>
 
       <Section title="Bloques del workout" description="Calentamiento · Main · Cool down">

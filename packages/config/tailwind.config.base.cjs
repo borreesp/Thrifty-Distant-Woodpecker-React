@@ -6,16 +6,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        bg: {
+          DEFAULT: tokens.brandColors.surface,
+          soft: tokens.brandColors.surfaceAlt
+        },
+        surface: {
+          DEFAULT: tokens.brandColors.surface,
+          alt: tokens.brandColors.surfaceAlt,
+          subtle: "rgba(15,23,42,0.8)"
+        },
         brand: {
           DEFAULT: tokens.brandColors.primary,
           dark: tokens.brandColors.primaryDark,
           accent: tokens.brandColors.accent
         },
-        surface: {
-          DEFAULT: tokens.brandColors.surface,
-          alt: tokens.brandColors.surfaceAlt
-        },
-        text: tokens.brandColors.text
+        text: {
+          DEFAULT: tokens.brandColors.text,
+          soft: "rgba(148,163,184,1)"
+        }
       },
       fontFamily: {
         sans: tokens.fonts.sans

@@ -1,16 +1,17 @@
+ "use client";
 import { Section } from "@thrifty/ui";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { HexMetricCard } from "../components/ui/HexMetricCard";
 import { TimelineWeek } from "../components/ui/TimelineWeek";
 import { WorkoutCardAdvanced } from "../components/ui/WorkoutCardAdvanced";
 
-const kpis = [
+const INITIAL_KPIS = [
   { value: "5", label: "Sesiones/semana", hint: "+2 vs pasada", tone: "blue" as const },
   { value: "7.2 h", label: "Carga total", hint: "Objetivo: 8h", tone: "violet" as const },
   { value: "Challenger", label: "Nivel actual", hint: "72% completado", tone: "green" as const }
 ];
 
-const timeline = [
+const INITIAL_TIMELINE = [
   { day: "Lun", label: "Engine Builder", status: "done" as const },
   { day: "Mar", label: "Strength Complex", status: "done" as const },
   { day: "Mié", label: "Hybrid Sprint", status: "planned" as const },
@@ -20,13 +21,33 @@ const timeline = [
   { day: "Dom", label: "Descanso", status: "rest" as const }
 ];
 
-const workouts = [
+const INITIAL_WORKOUTS = [
   { title: "Hybrid Sprint", focus: "Mixto · EMOM · 30min", duration: "30 min", level: "Challenger", type: "hybrid" as const },
   { title: "Engine Builder", focus: "Cardio · Z2 · 45min", duration: "45 min", level: "Base", type: "cardio" as const },
   { title: "Strength Complex", focus: "Fuerza · 60min", duration: "60 min", level: "Intermedio", type: "strength" as const }
 ];
 
 export default function DashboardPage() {
+  const [kpis, setKpis] = useState(INITIAL_KPIS);
+  const [timeline, setTimeline] = useState(INITIAL_TIMELINE);
+  const [workouts, setWorkouts] = useState(INITIAL_WORKOUTS);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const res = await fetch("/api/dashboard");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.kpis) setKpis(data.kpis);
+        if (data.timeline) setTimeline(data.timeline);
+        if (data.workouts) setWorkouts(data.workouts);
+      } catch {
+        // backend aún no disponible: usamos mocks
+      }
+    }
+    loadDashboard();
+  }, []);
+
   return (
     <div className="space-y-6">
       <Section

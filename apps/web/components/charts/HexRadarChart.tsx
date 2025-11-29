@@ -27,7 +27,7 @@ export const HexRadarChart: React.FC<Props> = ({
 }) => {
   const formatted = data.map((item) => ({ ...item, full: max }));
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-3 shadow-[0_10px_40px_rgba(0,0,0,0.25)] backdrop-blur-md">
+    <div className="card-base p-3">
       <ResponsiveContainer width="100%" height={300}>
         <RadarChart data={formatted} outerRadius="80%">
           <PolarGrid strokeOpacity={0.2} />

@@ -26,7 +26,7 @@ export const AthleteRadarChart: React.FC<RadarProps> = ({ data }) => {
     .join(" ");
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+    <div className="card-base overflow-hidden">
       <svg viewBox="0 0 240 240" className="w-full text-white">
         <defs>
           <linearGradient id="radarFillDetail" x1="0%" y1="0%" x2="100%" y2="100%">

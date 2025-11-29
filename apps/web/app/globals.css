@@ -32,3 +32,24 @@ a {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
+
+/* Reusable layout primitives */
+.card-base {
+  @apply glass rounded-2xl p-4 md:p-6 shadow-soft;
+}
+
+.chip-tab {
+  @apply rounded-full border border-white/15 bg-surface-alt px-4 py-2 text-sm font-semibold text-slate-100 transition hover:-translate-y-0.5 hover:shadow-lg;
+}
+
+.chip-tab-active {
+  @apply border-yellow-300 bg-yellow-400 text-slate-900 shadow-[0_10px_24px_rgba(254,201,79,0.35)];
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-slate-900 shadow-soft transition hover:bg-brand-dark hover:-translate-y-0.5;
+}
+
+.section-shell {
+  @apply space-y-4 rounded-3xl border border-white/10 bg-surface-subtle p-5 md:p-7 shadow-soft;
+}
