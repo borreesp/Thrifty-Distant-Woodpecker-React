@@ -1,9 +1,7 @@
 {
   "/page": "app/page.js",
-  "/workouts/new/page": "app/workouts/new/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
+  "/wod-analysis/page": "app/wod-analysis/page.js",
   "/workouts/page": "app/workouts/page.js",
-  "/progress/page": "app/progress/page.js",
   "/profile/page": "app/profile/page.js",
-  "/wod-analysis/page": "app/wod-analysis/page.js"
+  "/progress/page": "app/progress/page.js"
 }
