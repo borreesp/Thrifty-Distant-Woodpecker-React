@@ -7,11 +7,10 @@ settings:
 importers:
 
   .:
-    dependencies:
-      recharts:
-        specifier: ^2.7.2
-        version: 2.15.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
     devDependencies:
+      '@types/node':
+        specifier: ^20.16.10
+        version: 20.16.10
       '@types/react':
         specifier: ^18.3.27
         version: 18.3.27
@@ -19,7 +18,7 @@ importers:
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.27)
       turbo:
-        specifier: ^2.2.3
+        specifier: latest
         version: 2.6.1
       typescript:
         specifier: ^5.9.3
