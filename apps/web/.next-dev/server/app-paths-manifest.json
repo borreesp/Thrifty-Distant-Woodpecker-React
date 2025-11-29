@@ -1,7 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/wod-analysis/page": "app/wod-analysis/page.js",
-  "/workouts/page": "app/workouts/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/progress/page": "app/progress/page.js"
-}
