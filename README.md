@@ -1,3 +1,10 @@
+### Novedades conectadas al backend
+
+- Autenticacion obligatoria en todo el flujo web: login/register con cookies HttpOnly, guard global que redirige a /auth/login si no hay sesion.
+- Nuevas vistas web: /movements, /workouts/structure, /profile/training-load, /profile/capacity-profile, /lookups (y mejoras en /workouts/[id] y /gear).
+- Cliente API centralizado en apps/web/lib/api.ts (NEXT_PUBLIC_API_BASE_URL, default http://localhost:8000).
+- Las pantallas de workouts, detalle, material y perfiles consumen los endpoints de bloques, versiones, movimientos, lookups, training load y capacity profile del backend FastAPI.
+
 # Thrifty-Distant-Woodpecker-React
 
 Frontend monorepo para un MVP de plataforma de atletas híbridos (CrossFit / HYROX / Endurance).  
@@ -190,3 +197,6 @@ pnpm lint
 ---
 
 Este README resume la arquitectura, las pantallas y los gráficos clave de la aplicación para facilitar futuras iteraciones de producto y la integración de backend.
+
+
+

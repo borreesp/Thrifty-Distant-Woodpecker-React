@@ -4,6 +4,7 @@ import { cn } from "@thrifty/utils";
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
+  href?: string;
 };
 
 const baseStyles =
@@ -29,8 +30,20 @@ export const Button: React.FC<ButtonProps> = ({
   size = "md",
   className,
   children,
+  href,
   ...props
 }) => {
+  if (href) {
+    return (
+      <a
+        href={href}
+        className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
+        {...props}
+      >
+        {children}
+      </a>
+    );
+  }
   return (
     <button
       className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}

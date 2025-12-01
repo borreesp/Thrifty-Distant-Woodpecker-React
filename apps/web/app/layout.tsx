@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import React from "react";
 import "./globals.css";
-import { AppHeader, Button, Screen } from "@thrifty/ui";
+import { AuthShell } from "../components/auth/AuthShell";
+import { Providers } from "./providers";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "HybridForce MVP",
-  description: "Dashboard del atleta híbrido — Next.js + Expo monorepo"
+  description: "Dashboard del atleta hibrido - Next.js + Expo monorepo"
 };
 
 export default function RootLayout({
@@ -22,18 +23,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={manrope.variable}>
       <body>
-        <Screen className="pt-4">
-          <AppHeader
-            cta={<Button variant="primary">Empezar sesión</Button>}
-            links={[
-              { label: "Dashboard", href: "/" },
-              { label: "Workouts", href: "/workouts" },
-              { label: "Progreso", href: "/progress" },
-              { label: "Perfil", href: "/profile" }
-            ]}
-          />
-          <main className="space-y-6 pb-12">{children}</main>
-        </Screen>
+        <Providers>
+          <AuthShell>{children}</AuthShell>
+        </Providers>
       </body>
     </html>
   );

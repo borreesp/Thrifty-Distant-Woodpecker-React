@@ -1,138 +1,171 @@
-import React from "react";
-import { Section } from "@thrifty/ui";
-import { WorkoutDetailHeader } from "../../../components/workout/WorkoutDetailHeader";
-import { HexStatCard } from "../../../components/workout/HexStatCard";
-import { HexRadarChart } from "../../../components/charts/HexRadarChart";
-import { WorkoutBlockCard } from "../../../components/workout/WorkoutBlockCard";
-import { GearMiniCard } from "../../../components/workout/GearMiniCard";
-import { PhysioBenefitCard } from "../../../components/workout/PhysioBenefitCard";
-import { FeelingIndicator } from "../../../components/workout/FeelingIndicator";
-import { StartHexButton } from "../../../components/workout/StartHexButton";
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../../../lib/api";
+import type { Workout, WorkoutBlock } from "../../../lib/types";
+import { HeaderOverview } from "../../../components/wod/HeaderOverview";
+import { AthleteResponsePanel } from "../../../components/wod/AthleteResponsePanel";
+import { WODStationBreakdown } from "../../../components/wod/WODStationBreakdown";
+import { DataVisualZone } from "../../../components/wod/DataVisualZone";
+import { TacticalInsightsPanel } from "../../../components/wod/TacticalInsightsPanel";
+import { PersonalTrackPanel } from "../../../components/wod/PersonalTrackPanel";
 
-const workout = {
-  id: "engine-builder",
-  name: "Engine Builder",
-  type: "engine",
-  duration: 45,
-  intensity: "moderate",
-  recommendedLevel: "Intermedio",
-  energy: {
-    calories: 520,
-    metabolicSystem: "aerobic"
-  },
-  skillImpact: {
-    engine: 80,
-    strength: 20,
-    power: 10,
-    agility: 40,
-    speed: 30,
-    mobility: 15
-  },
-  xp: {
-    total: 220,
-    perMinute: 5,
-    progression: 30
-  },
-  muscles: {
-    primary: ["Cuádriceps", "Glúteos"],
-    secondary: ["Core", "Espalda baja"]
-  },
-  gear: ["Airbike", "Kettlebell", "Cuerda", "Esterilla"],
+const FALLBACK_WORKOUT: Workout = {
+  id: 0,
+  title: "Engine Builder",
+  description: "Row + wall balls",
+  domain: "Aerobico",
+  intensity: "Media",
+  hyrox_transfer: "Media",
+  wod_type: "Intervals",
+  version: 1,
+  is_active: true,
+  session_load: "Moderate",
+  session_feel: "Pulso controlado",
+  estimated_difficulty: 6.5,
+  avg_time_seconds: 1200,
+  rating_count: 0,
+  capacities: [
+    { capacity: "Resistencia", value: 80, note: "Ritmo sostenible" },
+    { capacity: "Carga muscular", value: 55, note: "Volumen ligero" }
+  ],
+  hyrox_stations: [{ station: "Row", transfer_pct: 70 }],
+  muscles: ["Piernas", "Core"],
   blocks: [
     {
+      id: 1,
+      workout_id: 0,
+      position: 1,
+      block_type: "warmup",
       title: "Calentamiento",
-      duration: "7 min",
-      steps: ["Movilidad general", "Activación escapular", "Remos suaves"]
+      description: "Row easy pace",
+      duration_seconds: 420,
+      rounds: null,
+      notes: "",
+      movements: [
+        { id: 1, movement_id: 1, position: 1, reps: null, load: null, load_unit: null, distance_meters: 400, duration_seconds: null, calories: null, movement: { id: 1, name: "Row", category: "Cardio", description: "", default_load_unit: null, video_url: null, muscles: [] } }
+      ]
     },
     {
-      title: "Main Block",
-      duration: "30 min",
-      steps: ["Z3 constante", "Cadencia estable", "Respiración controlada"]
-    },
-    {
-      title: "Cool Down",
-      duration: "8 min",
-      steps: ["Transición suave", "Respiración", "Estiramientos leves"]
+      id: 2,
+      workout_id: 0,
+      position: 2,
+      block_type: "intervals",
+      title: "10 rounds",
+      description: "200m row + 10 wall balls",
+      duration_seconds: 900,
+      rounds: 10,
+      notes: "",
+      movements: [
+        { id: 2, movement_id: 1, position: 1, reps: null, load: null, load_unit: null, distance_meters: 200, duration_seconds: null, calories: null, movement: { id: 1, name: "Row", category: "Cardio", description: "", default_load_unit: null, video_url: null, muscles: [] } },
+        { id: 3, movement_id: 2, position: 2, reps: 10, load: 9, load_unit: "kg", distance_meters: null, duration_seconds: null, calories: null, movement: { id: 2, name: "Wall Ball", category: "Metcon", description: "", default_load_unit: "kg", video_url: null, muscles: [] } }
+      ]
     }
-  ],
-  benefits: ["Mejora cardiovascular", "Capacidad aeróbica", "Estabilidad core"],
-  expectedFeeling:
-    "Trabajo intenso pero sostenible. Burn en cuádriceps y respiración elevada en fase intermedia."
+  ]
 };
 
-const hexStats = [
-  { label: "XP total", value: `${workout.xp.total}`, subvalue: "+30% progresión" },
-  { label: "Calorías", value: `${workout.energy.calories}`, subvalue: "Metabolic: Aeróbico" },
-  { label: "XP / min", value: `${workout.xp.perMinute}`, subvalue: "Eficiencia" },
-  { label: "Progresión", value: `${workout.xp.progression}%`, subvalue: "Modo carrera" }
+const HYROX_STATIONS = [
+  "1K Run",
+  "SkiErg",
+  "Sled Push",
+  "Sled Pull",
+  "Burpee Broad Jump",
+  "Row",
+  "Farmers Carry",
+  "Sandbag Lunges",
+  "Wall Balls"
 ];
 
-const radarData = [
-  { label: "Engine", value: workout.skillImpact.engine },
-  { label: "Fuerza", value: workout.skillImpact.strength },
-  { label: "Potencia", value: workout.skillImpact.power },
-  { label: "Agilidad", value: workout.skillImpact.agility },
-  { label: "Velocidad", value: workout.skillImpact.speed },
-  { label: "Movilidad", value: workout.skillImpact.mobility }
-];
+function blockSteps(block: WorkoutBlock) {
+  return block.movements.map((mv) => {
+    const base = mv.movement?.name ?? "Movimiento";
+    if (mv.reps) return `${base} x ${mv.reps}${mv.load ? ` @ ${mv.load}${mv.load_unit ?? ""}` : ""}`;
+    if (mv.distance_meters) return `${base} ${mv.distance_meters}m`;
+    if (mv.duration_seconds) return `${base} ${Math.round(mv.duration_seconds / 60)} min`;
+    if (mv.calories) return `${base} ${mv.calories} cal`;
+    return base;
+  });
+}
 
 export default function WorkoutDetailPage({ params }: { params: { id: string } }) {
-  const data = workout; // futuro: fetch por params.id
+  const workoutId = params.id;
+  const [workout, setWorkout] = useState<Workout>(FALLBACK_WORKOUT);
+  const [versions, setVersions] = useState<Workout[]>([FALLBACK_WORKOUT]);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [structure, vers] = await Promise.all([
+          api.getWorkoutStructure(workoutId),
+          api.getWorkoutVersions(workoutId)
+        ]);
+        setWorkout(structure.blocks?.length ? structure : { ...structure, blocks: await api.getWorkoutBlocks(workoutId) });
+        setVersions(vers && vers.length ? vers : [structure]);
+      } catch {
+        setWorkout(FALLBACK_WORKOUT);
+        setVersions([FALLBACK_WORKOUT]);
+      }
+    }
+    load();
+  }, [workoutId]);
+
+  const minutes = useMemo(() => (workout.avg_time_seconds ? Math.round(workout.avg_time_seconds / 60) : null), [workout]);
+  const radarData = useMemo(
+    () => (workout.capacities ?? []).map((c) => ({ label: c.capacity, value: c.value })),
+    [workout]
+  );
+
+  const stations = useMemo(() => {
+    const blocks = workout.blocks ?? [];
+    const mapped = blocks.map((b, idx) => ({
+      id: b.id,
+      title: b.title ?? `Bloque ${b.position}`,
+      duration: b.duration_seconds ? Math.round(b.duration_seconds / 60) : null,
+      steps: blockSteps(b),
+      muscle: b.movements.map((m) => m.movement?.muscles?.[0]?.muscle_group ?? m.movement?.name ?? "").find(Boolean) ?? "General",
+      metabolic: b.block_type ?? "",
+      compare: HYROX_STATIONS[idx % HYROX_STATIONS.length]
+    }));
+    return mapped;
+  }, [workout]);
+
   return (
-    <div className="space-y-8">
-      <Section title="Detalle de workout" description="Vista premium gamificada">
-        <WorkoutDetailHeader
-          name={data.name}
-          type={data.type}
-          duration={data.duration}
-          intensity={data.intensity}
-          recommendedLevel={data.recommendedLevel}
-        />
-      </Section>
+    <div className="space-y-10">
+      <HeaderOverview
+        title={workout.title}
+        dateHint={`v${workout.version ?? 1}`}
+        durationLabel={minutes ? `${minutes} min` : "s/n"}
+        effortTag={workout.intensity ?? "N/A"}
+        loadScore={workout.estimated_difficulty ?? 0}
+        aerobicShare={Math.min(85, Math.max(15, (workout.avg_time_seconds ?? 0) / 1000))}
+      />
 
-      <Section title="Impacto y XP">
-        <div className="grid gap-4 md:grid-cols-4">
-          {hexStats.map((stat) => (
-            <HexStatCard key={stat.label} {...stat} />
-          ))}
-        </div>
-      </Section>
+      <AthleteResponsePanel
+        heartRates={{ avg: 138, max: 172 }}
+        hrv={78}
+        glycogenCurve={[82, 70, 55, 48, 40, 35, 30, 28]}
+        fatigueByStation={stations.map((s, idx) => ({ label: `Est.${idx + 1}`, value: 60 + (idx % 4) * 8 }))}
+      />
 
-      <Section title="Impacto en habilidades">
-        <HexRadarChart data={radarData} />
-      </Section>
+      <WODStationBreakdown stations={stations} />
 
-      <Section title="Bloques del workout" description="Calentamiento · Main · Cool down">
-        <div className="grid gap-4 md:grid-cols-3">
-          {data.blocks.map((block) => (
-            <WorkoutBlockCard key={block.title} {...block} />
-          ))}
-        </div>
-      </Section>
+      <DataVisualZone
+        effortCurve={[10, 30, 45, 60, 55, 70, 80, 78, 82, 75, 70, 60]}
+        dropOffCurve={[2, 5, 8, 12, 15, 18, 22, 26, 28, 30, 30, 30]}
+        radarData={radarData.length ? radarData : [{ label: "Resistencia", value: 65 }]}
+      />
 
-      <Section title="Material necesario">
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-          {data.gear.map((item) => (
-            <GearMiniCard key={item} label={item} />
-          ))}
-        </div>
-      </Section>
+      <TacticalInsightsPanel
+        weaknesses={[(workout.capacities?.[0]?.capacity ?? "Resistencia"), "Transiciones HYROX", "Fatiga en tren inferior"]}
+        suggestions={["Controla pace en primera mitad", "Practica Sled con carga progresiva", "Agrega trabajo de movilidad entre bloques"]}
+        hyroxTransfer={workout.hyrox_transfer ?? "N/A"}
+      />
 
-      <Section title="Beneficios fisiológicos">
-        <div className="grid gap-3 md:grid-cols-3">
-          {data.benefits.map((benefit) => (
-            <PhysioBenefitCard key={benefit} label={benefit} />
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Cómo te sentirás">
-        <FeelingIndicator text={data.expectedFeeling} />
-      </Section>
-
-      <div className="flex justify-center pb-8">
-        <StartHexButton />
-      </div>
+      <PersonalTrackPanel
+        feel={workout.session_feel ?? "Pulso estable, respiracion controlada"}
+        notes={workout.description ?? ""}
+        compareLabel={workout.hyrox_stations?.[0]?.station ?? "Wall Balls"}
+        versions={versions.map((v) => ({ id: v.id, title: v.title, version: v.version ?? 1 }))}
+      />
     </div>
   );
 }

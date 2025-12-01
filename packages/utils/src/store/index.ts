@@ -5,6 +5,7 @@ type UserProfile = {
   name: string;
   level: string;
   avatar?: string;
+  email?: string;
 };
 
 type WorkoutSummary = {
@@ -36,7 +37,13 @@ type GearRecommendation = {
 
 type UserSlice = {
   user: UserProfile | null;
+  authLoading: boolean;
+  hydrated: boolean;
+  authError: string | null;
   setUser: (user: UserProfile | null) => void;
+  setAuthLoading: (loading: boolean) => void;
+  setHydrated: (hydrated: boolean) => void;
+  setAuthError: (message: string | null) => void;
 };
 
 type WorkoutsSlice = {
@@ -74,7 +81,13 @@ const createUserSlice: StateCreator<
   UserSlice
 > = (set) => ({
   user: null,
-  setUser: (user) => set({ user })
+  authLoading: false,
+  hydrated: false,
+  authError: null,
+  setUser: (user) => set({ user }),
+  setAuthLoading: (authLoading) => set({ authLoading }),
+  setHydrated: (hydrated) => set({ hydrated }),
+  setAuthError: (authError) => set({ authError })
 });
 
 const createWorkoutsSlice: StateCreator<
