@@ -98,9 +98,12 @@ export default function AthletePage() {
     }));
   }, [data?.achievements]);
 
-  const gear = useMemo(() => {
-    if (!equipment.length) return [] as { name: string; status?: string }[];
-    return equipment.slice(0, 4).map((eq) => ({ name: eq.name, status: eq.category }));
+  const gear = useMemo((): { name: string; status?: string }[] => {
+    if (!equipment.length) return [];
+    return equipment.slice(0, 4).map((eq) => ({
+      name: eq.name,
+      status: eq.category ?? undefined
+    }));
   }, [equipment]);
 
   return (
