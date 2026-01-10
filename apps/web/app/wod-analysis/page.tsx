@@ -6,7 +6,7 @@ import { Card, Section, Button } from "@thrifty/ui";
 import { HeroHeader } from "../../components/wod-analysis/HeroHeader";
 import { UploadForm } from "../../components/wod-analysis/UploadForm";
 import { BlocksEditor } from "../../components/wod-analysis/BlocksEditor";
-import { AnalyzingOverlay } from "../../components/wod-analysis/AnalyzingOverlay";
+import { AnalyzingOverlay, type Step } from "../../components/wod-analysis/AnalyzingOverlay";
 import { api } from "../../lib/api";
 import type { EditableWodBlock } from "../../components/wod/wod-types";
 import type { Workout } from "../../lib/types";
@@ -48,7 +48,7 @@ export default function WodAnalysisUploadPage() {
     setDraftBlocks(payload.blocks);
   };
 
-  const analyzeSteps = useMemo(
+  const analyzeSteps = useMemo<Step[]>(
     () => [
       { label: "Interpretando bloques y volumen", status: stepIndex > 0 ? "done" : "active" },
       { label: "Calculando carga, pacing y capacidades", status: stepIndex > 1 ? "done" : stepIndex === 1 ? "active" : "pending" },
@@ -57,7 +57,7 @@ export default function WodAnalysisUploadPage() {
     [stepIndex]
   );
 
-  const parseSteps = [{ label: "Extrayendo bloques del entrenamiento…", status: "active" as const }];
+  const parseSteps: Step[] = [{ label: "Extrayendo bloques del entrenamiento…", status: "active" }];
 
   const handleAnalyze = async (formData: {
     title: string;

@@ -2,7 +2,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Step = { label: string; status: "pending" | "active" | "done" };
+export type Step = { label: string; status: "pending" | "active" | "done" };
 
 type Props = {
   active: boolean;

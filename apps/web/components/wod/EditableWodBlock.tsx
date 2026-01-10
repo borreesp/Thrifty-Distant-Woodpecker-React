@@ -2,12 +2,12 @@
 import React from "react";
 import { Button, Input } from "@thrifty/ui";
 import { motion } from "framer-motion";
-import type { EditableWodBlock } from "./wod-types";
+import type { EditableWodBlock as EditableWodBlockType } from "./wod-types";
 
 type Props = {
-  block: EditableWodBlock;
+  block: EditableWodBlockType;
   index: number;
-  onChange: (id: string, patch: Partial<EditableWodBlock>) => void;
+  onChange: (id: string, patch: Partial<EditableWodBlockType>) => void;
   onRemove: (id: string) => void;
   onMove: (id: string, direction: "up" | "down") => void;
 };

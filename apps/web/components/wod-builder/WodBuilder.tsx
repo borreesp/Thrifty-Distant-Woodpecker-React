@@ -290,7 +290,7 @@ export function DraggableMovementItem({ movement }: { movement: Movement }) {
     data: { type: "template", movementId: movement.id }
   });
   const style = {
-    transform: CSS.Translate.toString(transform ?? { x: 0, y: 0 }),
+    transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.6 : 1
   };
 

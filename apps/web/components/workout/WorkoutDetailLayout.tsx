@@ -8,18 +8,22 @@ import { AthleteImpact } from "../wod-analysis/AthleteImpact";
 import { expectedMetricKeys, recordMetrics } from "../../lib/metrics-debug";
 import { adaptAthleteProfile, adaptAthleteImpact, adaptWorkoutComputedMetrics } from "../../lib/metrics/adapters";
 import { AthleteRadarChart } from "./AthleteRadarChart";
+import type { HyroxTransferResult } from "../../lib/hyrox";
 import type {
   AthleteProfileResponse,
   AuthUser,
   Equipment,
   Workout,
   WorkoutAnalysis,
-  WorkoutResult
+  WorkoutResult,
+  WorkoutBlock,
+  WorkoutBlockMovement
 } from "../../lib/types";
 
 type ResultFormState = { time_seconds: number; difficulty: number; rating: number; comment: string };
 
-type TimelineBlock = { label: string; blocks: Workout["blocks"] };
+type TimelineBlock = { label: string; blocks: WorkoutBlock[] };
+type CapacityGap = { title: string; target: number; athlete: number; delta: number };
 type ImpactMap = Record<string, number | undefined>;
 
 type Props = {
@@ -75,7 +79,7 @@ function formatMinutesValue(total?: number | null) {
   return `${Math.round(total)} min`;
 }
 
-function movementMetrics(movement: Workout["blocks"][number]["movements"][number]) {
+function movementMetrics(movement: WorkoutBlockMovement) {
   const parts: string[] = [];
   if (movement.reps) parts.push(`${movement.reps} reps`);
   if (movement.distance_meters) parts.push(`${movement.distance_meters} m`);
@@ -200,10 +204,10 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   const timeline: TimelineBlock[] = useMemo(() => {
     if (!workout?.blocks) return [];
     const sorted = [...workout.blocks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-    const grouped = new Map<string, Workout["blocks"]>();
+    const grouped = new Map<string, WorkoutBlock[]>();
     sorted.forEach((block) => {
       const key = block.block_type || "Bloque";
-      if (!grouped.has(key)) grouped.set(key, [] as Workout["blocks"]);
+      if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)?.push(block);
     });
     return Array.from(grouped.entries()).map(([label, blocks]) => ({ label, blocks }));
@@ -249,9 +253,9 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
     [results, globalSample]
   );
 
-  const capacityGap = useMemo(() => {
+  const capacityGap = useMemo<CapacityGap | null>(() => {
     if (!athleteProfile || !workout?.capacities?.length) return null;
-    let gapItem: { title: string; target: number; athlete: number; delta: number } | null = null;
+    let gapItem: CapacityGap | null = null;
     workout.capacities.forEach((cap) => {
       const athleteCap = athleteProfile.capacities.find((c) => c.capacity.toLowerCase() === (cap.capacity || "").toLowerCase());
       const athleteValue = athleteCap?.value ?? 0;
@@ -305,14 +309,16 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   );
   const athleteProfileMetrics = useMemo(() => adaptAthleteProfile(buildAthleteProfileMetrics(athleteProfile)), [athleteProfile]);
 
-  const hyroxTransfer = useMemo(() => {
+  const hyroxTransfer = useMemo<HyroxTransferResult | null>(() => {
     const transferScore =
       workout?.hyrox_transfer_score ?? (analysis as any)?.hyrox_transfer_score ?? (analysis as any)?.hyrox_transfer;
     if (transferScore === undefined || transferScore === null) return null;
+    const components = workout?.hyrox_components ?? (analysis as any)?.hyrox_components ?? {};
+    const explanation = (analysis as any)?.hyrox_explanation ?? [];
     return {
-      transferScore,
-      components: workout?.hyrox_components ?? (analysis as any)?.hyrox_components ?? {},
-      explanation: []
+      transferScore: Number(transferScore),
+      components: components as HyroxTransferResult["components"],
+      explanation: Array.isArray(explanation) ? explanation : []
     };
   }, [analysis, workout]);
 

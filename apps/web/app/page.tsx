@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import Link from "next/link";
+import type { Route } from "next";
 import { Button, Card, Metric, Section } from "@thrifty/ui";
 
 const weeklyLoad = [
@@ -12,7 +14,7 @@ const weeklyLoad = [
   { label: "D", value: 20, tone: "bg-slate-600" }
 ];
 
-const quickActions = [
+const quickActions: { label: string; hint: string; href: Route }[] = [
   { label: "Analizar WOD", hint: "Carga estimada y fatiga", href: "/wod-analysis" },
   { label: "Historial", hint: "Tus ultimas sesiones", href: "/workouts" },
   { label: "Atleta", hint: "Perfil y progreso", href: "/athlete" }
@@ -170,17 +172,15 @@ export default function DashboardPage() {
       <Section title="Accesos rapidos" description="Entra directo a lo que importa.">
         <div className="grid gap-3 md:grid-cols-3">
           {quickActions.map((action) => (
-            <Card
-              key={action.label}
-              className="group flex cursor-pointer items-center justify-between rounded-xl border border-white/5 bg-slate-900/50 px-4 py-3 transition hover:border-cyan-400/50 hover:bg-slate-800/80"
-              href={action.href}
-            >
-              <div>
-                <p className="text-sm font-semibold text-white">{action.label}</p>
-                <p className="text-xs text-slate-400">{action.hint}</p>
-              </div>
-              <span className="text-cyan-300 transition group-hover:translate-x-1">→</span>
-            </Card>
+            <Link key={action.label} href={action.href} className="block">
+              <Card className="group flex cursor-pointer items-center justify-between rounded-xl border border-white/5 bg-slate-900/50 px-4 py-3 transition hover:border-cyan-400/50 hover:bg-slate-800/80">
+                <div>
+                  <p className="text-sm font-semibold text-white">{action.label}</p>
+                  <p className="text-xs text-slate-400">{action.hint}</p>
+                </div>
+                <span className="text-cyan-300 transition group-hover:translate-x-1">→</span>
+              </Card>
+            </Link>
           ))}
         </div>
       </Section>

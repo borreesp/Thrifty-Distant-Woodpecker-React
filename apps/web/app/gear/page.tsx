@@ -9,7 +9,7 @@ type Equipment = {
   name: string;
   description: string;
   price?: number;
-  category?: string;
+  category?: string | null;
 };
 
 const FALLBACK: Equipment[] = [

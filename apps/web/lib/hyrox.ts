@@ -28,16 +28,15 @@ export const hyroxStationWeights: HyroxComponents = {
   burpee_broad_jump: 10
 };
 
-type HyroxInput = Partial<Workout> & {
-  blocks?: Array<
-    Pick<WorkoutBlock, "movements" | "notes"> & {
-      movements: Array<
-        Pick<WorkoutBlockMovement, "reps" | "distance_meters" | "duration_seconds"> & {
-          movement?: Pick<Movement, "name" | "category"> | null;
-        }
-      >;
-    }
-  >;
+type HyroxInput = Partial<Omit<Workout, "blocks">> & {
+  blocks?: Array<{
+    notes?: string | null;
+    movements: Array<
+      Pick<WorkoutBlockMovement, "reps" | "distance_meters" | "duration_seconds"> & {
+        movement?: Pick<Movement, "name" | "category"> | null;
+      }
+    >;
+  }>;
   work_rest_ratio?: string | null;
   intensity?: string | null;
   volume_total?: string | null;

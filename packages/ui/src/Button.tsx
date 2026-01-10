@@ -1,11 +1,15 @@
 import React from "react";
 import { cn } from "@thrifty/utils";
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+type BaseProps = {
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
-  href?: string;
 };
+
+type AnchorButtonProps = BaseProps & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { href: string };
+type NativeButtonProps = BaseProps & React.ButtonHTMLAttributes<HTMLButtonElement> & { href?: never };
+
+type ButtonProps = AnchorButtonProps | NativeButtonProps;
 
 const baseStyles =
   "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -25,30 +29,21 @@ const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
   lg: "px-5 py-3 text-base"
 };
 
-export const Button: React.FC<ButtonProps> = ({
-  variant = "primary",
-  size = "md",
-  className,
-  children,
-  href,
-  ...props
-}) => {
-  if (href) {
+const isAnchorProps = (props: ButtonProps): props is AnchorButtonProps => typeof (props as AnchorButtonProps).href === "string";
+
+export const Button: React.FC<ButtonProps> = (props) => {
+  if (isAnchorProps(props)) {
+    const { variant = "primary", size = "md", className, children, href, ...rest } = props;
     return (
-      <a
-        href={href}
-        className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
-        {...props}
-      >
+      <a href={href} className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)} {...rest}>
         {children}
       </a>
     );
   }
+
+  const { variant = "primary", size = "md", className, children, ...rest } = props;
   return (
-    <button
-      className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
-      {...props}
-    >
+    <button className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)} {...rest}>
       {children}
     </button>
   );

@@ -8,6 +8,7 @@ type SectionProps = {
   actions?: React.ReactNode;
   className?: string;
   children?: React.ReactNode;
+  id?: string;
 };
 
 export const Section: React.FC<SectionProps> = ({
@@ -15,10 +16,11 @@ export const Section: React.FC<SectionProps> = ({
   description,
   actions,
   children,
-  className
+  className,
+  id
 }) => {
   return (
-    <View className={cn("py-3", className)}>
+    <View nativeID={id} className={cn("py-3", className)}>
       {(title || description || actions) && (
         <View className="mb-3 flex flex-row items-center justify-between">
           <View className="flex-1">
