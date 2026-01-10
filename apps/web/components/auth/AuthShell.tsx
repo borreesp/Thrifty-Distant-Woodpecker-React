@@ -33,7 +33,6 @@ export const AuthShell: React.FC<{ children: React.ReactNode }> = ({ children })
           { label: "Analisis WOD", href: "/wod-analysis" },
           { label: "Workouts", href: "/workouts" },
           { label: "Estructura", href: "/workouts/structure" },
-          { label: "Movimientos", href: "/movements" },
           { label: "Carga", href: "/profile/training-load" },
           { label: "Lookups", href: "/lookups" }
         ]}

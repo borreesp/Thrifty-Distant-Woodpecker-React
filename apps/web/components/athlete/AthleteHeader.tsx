@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 export const AthleteHeader: React.FC<{
   name: string;
   level: string;
-  xp: string;
+  xp: string | number;
   avatar?: string;
   age?: string;
   state: string;
@@ -26,7 +26,9 @@ export const AthleteHeader: React.FC<{
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Atleta</p>
             <h1 className="text-3xl font-semibold text-white">{name}</h1>
-            <p className="text-sm text-slate-300">{level} · {xp} XP {age ? `· ${age}` : ""}</p>
+            <p className="text-sm text-slate-300">
+              {level} · {typeof xp === "number" ? Number(xp).toLocaleString("es-ES") : xp} XP {age ? `· ${age}` : ""}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-slate-200">

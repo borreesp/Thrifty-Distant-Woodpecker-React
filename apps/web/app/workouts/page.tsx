@@ -3,168 +3,174 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import { Card, Section } from "@thrifty/ui";
 import { api } from "../../lib/api";
-import type { Workout, WorkoutStats } from "../../lib/types";
+import type { Workout } from "../../lib/types";
 
-type WorkoutCard = {
-  id: number | string;
-  title: string;
-  focus: string;
-  duration: string;
-  level: string;
-  type: "cardio" | "strength" | "hybrid";
-  difficulty?: number | null;
-  rating?: number | null;
-  tags: string[];
-};
-
-const FALLBACK: WorkoutCard[] = [
-  { id: "fallback-1", title: "Engine Builder", focus: "Cardio · Z2", duration: "45 min", level: "Base", type: "cardio", difficulty: 5.5, rating: 4.2, tags: ["Row", "Bike"] },
-  { id: "fallback-2", title: "Strength Complex", focus: "Fuerza · Lower", duration: "60 min", level: "Intermedio", type: "strength", difficulty: 7.1, rating: 4.6, tags: ["Barbell", "Core"] },
-  { id: "fallback-3", title: "Hybrid Sprint", focus: "Mixto · EMOM", duration: "30 min", level: "Explosivo", type: "hybrid", difficulty: 6.8, rating: 4.4, tags: ["Bike", "Carry"] },
-  { id: "fallback-4", title: "Row & Carry", focus: "Cardio + Grip", duration: "25 min", level: "Challenger", type: "hybrid", difficulty: 7.9, rating: 4.7, tags: ["Row", "Farmer"] }
-];
-
-function mapWorkout(workout: Workout): WorkoutCard {
-  const minutes = workout.avg_time_seconds ? Math.round(workout.avg_time_seconds / 60) : null;
-  const typeHint = workout.wod_type?.toLowerCase() || "";
-  const type: WorkoutCard["type"] = typeHint.includes("strength") ? "strength" : typeHint.includes("cardio") ? "cardio" : "hybrid";
-  const tags = [
-    workout.domain,
-    workout.intensity,
-    workout.hyrox_transfer,
-    ...(workout.muscles ?? []),
-    ...(workout.hyrox_stations?.map((h) => h.station) ?? [])
-  ]
-    .filter(Boolean)
-    .slice(0, 4) as string[];
-
-  return {
-    id: workout.id,
-    title: workout.title,
-    focus: [workout.domain ?? "Mixto", workout.intensity ?? "N/A", workout.wod_type ?? "WOD"].filter(Boolean).join(" · "),
-    duration: minutes ? `${minutes} min` : "s/n",
-    level: workout.session_load || "N/A",
-    type,
-    difficulty: workout.estimated_difficulty,
-    rating: workout.avg_rating,
-    tags
-  };
-}
-
-function Badge({ tone, children }: { tone: "cardio" | "strength" | "hybrid"; children: React.ReactNode }) {
-  const tones = {
-    cardio: "bg-cyan-500/15 text-cyan-200 border border-cyan-500/20",
-    strength: "bg-orange-500/15 text-orange-200 border border-orange-500/20",
-    hybrid: "bg-indigo-500/15 text-indigo-200 border border-indigo-500/20"
-  };
-  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
-}
-
-function Pill({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">{children}</span>;
-}
+const statTone = {
+  cardio: "text-cyan-200",
+  strength: "text-orange-200",
+  hybrid: "text-indigo-200"
+} as const;
 
 export default function WorkoutsPage() {
-  const [items, setItems] = useState<WorkoutCard[]>(FALLBACK);
-  const [stats, setStats] = useState<WorkoutStats[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState({ domain: "", intensity: "", hyrox: "" });
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
+    setStatus("loading");
     api
       .getWorkouts()
-      .then((data) => setItems(data.map(mapWorkout)))
-      .catch(() => setItems(FALLBACK));
-    api
-      .getWorkoutStats()
-      .then(setStats)
-      .catch(() => setStats([]));
+      .then((data) => {
+        setWorkouts(data);
+        setStatus("idle");
+      })
+      .catch((err) => {
+        setError(err.message);
+        setStatus("error");
+      });
   }, []);
 
-  const avgDifficulty = useMemo(() => {
-    const vals = stats.map((s) => Number(s.estimated_difficulty ?? 0)).filter(Boolean);
-    if (!vals.length) return null;
-    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
-  }, [stats]);
+  const domains = useMemo(
+    () => Array.from(new Set(workouts.map((w) => w.domain).filter(Boolean))) as string[],
+    [workouts]
+  );
+  const intensities = useMemo(
+    () => Array.from(new Set(workouts.map((w) => w.intensity).filter(Boolean))) as string[],
+    [workouts]
+  );
+  const hyroxStations = useMemo(
+    () =>
+      Array.from(new Set(workouts.flatMap((w) => w.hyrox_stations?.map((h) => h.station) ?? []).filter(Boolean))) as string[],
+    [workouts]
+  );
+
+  const filtered = useMemo(() => {
+    return workouts
+      .filter((workout) => (filters.domain ? workout.domain === filters.domain : true))
+      .filter((workout) => (filters.intensity ? workout.intensity === filters.intensity : true))
+      .filter((workout) =>
+        filters.hyrox ? workout.hyrox_stations?.some((station) => station.station === filters.hyrox) : true
+      )
+      .filter((workout) =>
+        search ? `${workout.title} ${workout.description}`.toLowerCase().includes(search.toLowerCase()) : true
+      )
+      .sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0));
+  }, [workouts, filters, search]);
+
+  const renderTags = (workout: Workout) => {
+    const tags = [workout.domain, workout.intensity, workout.hyrox_transfer, ...(workout.muscles ?? [])]
+      .filter(Boolean)
+      .slice(0, 4);
+    return (
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+        {tags.map((tag) => (
+          <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+            {tag}
+          </span>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-8">
-      <header className="overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 shadow-xl ring-1 ring-white/5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Biblioteca WODs</p>
-            <h1 className="text-3xl font-semibold text-white">Análisis y selección de workouts</h1>
-            <p className="mt-1 text-slate-300">Explora, compara y lanza tus sesiones directamente.</p>
-          </div>
-          <div className="flex gap-3">
-            <Badge tone="hybrid">Mixtos</Badge>
-            <Badge tone="strength">Fuerza</Badge>
-            <Badge tone="cardio">Cardio</Badge>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Card className="bg-white/5">
-            <p className="text-sm text-slate-400">Workouts en librería</p>
-            <p className="text-2xl font-semibold text-white">{items.length}</p>
-            <p className="text-xs text-slate-400">Filtra por dominio, intensidad o estación</p>
-          </Card>
-          <Card className="bg-white/5">
-            <p className="text-sm text-slate-400">Dificultad promedio</p>
-            <p className="text-2xl font-semibold text-white">{avgDifficulty ?? "s/n"}</p>
-            <p className="text-xs text-slate-400">Basado en ratings agregados</p>
-          </Card>
-          <Card className="bg-white/5">
-            <p className="text-sm text-slate-400">Últimas valoraciones</p>
-            <p className="text-2xl font-semibold text-white">{stats.reduce((acc, s) => acc + (s.rating_count ?? 0), 0)}</p>
-            <p className="text-xs text-slate-400">Votos totales</p>
-          </Card>
-        </div>
-      </header>
-
-      <Section title="Explorar workouts" description="Elige por foco fisiológico, intensidad o duración.">
-        <div className="grid gap-4 lg:grid-cols-3">
-          {items.map((w) => (
-            <Link key={w.id} href={`/workouts/${w.id}`} className="group block">
-              <Card className="h-full cursor-pointer border border-white/5 bg-slate-900/60 p-4 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-slate-800/80">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400">{w.focus}</p>
-                    <h3 className="mt-1 text-lg font-semibold text-white">{w.title}</h3>
-                  </div>
-                  <Badge tone={w.type}>{w.level}</Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                  <Pill>{w.duration}</Pill>
-                  {typeof w.difficulty === "number" && <Pill>Dif: {w.difficulty.toFixed(1)}</Pill>}
-                  {typeof w.rating === "number" && <Pill>Rating {w.rating.toFixed(1)}</Pill>}
-                  {w.tags.slice(0, 3).map((t) => (
-                    <Pill key={t}>{t}</Pill>
-                  ))}
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Estadísticas rápidas" description="Dificultad y ratings agregados">
-        <Card className="bg-slate-900/70 p-4 ring-1 ring-white/5">
-          <div className="grid grid-cols-5 gap-3 text-xs text-slate-300">
-            <span className="font-semibold text-slate-200">Workout</span>
-            <span className="font-semibold text-slate-200">Dif.</span>
-            <span className="font-semibold text-slate-200">Avg time</span>
-            <span className="font-semibold text-slate-200">Rating</span>
-            <span className="font-semibold text-slate-200">Votes</span>
-            {stats.map((s) => (
-              <React.Fragment key={s.workout_id}>
-                <span>{s.title ?? s.workout_id}</span>
-                <span>{s.estimated_difficulty ?? "-"}</span>
-                <span>{s.avg_time_seconds ?? "-"}</span>
-                <span>{s.avg_rating ?? "-"}</span>
-                <span>{s.rating_count ?? 0}</span>
-              </React.Fragment>
+    <div className="space-y-6">
+      <Section title="Workouts" description="Todos los WODs disponibles para tu perfil HybridForce.">
+        <div className="grid gap-3 md:grid-cols-4">
+          <input
+            placeholder="Buscador"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-slate-500"
+          />
+          <select
+            value={filters.domain}
+            onChange={(event) => setFilters((prev) => ({ ...prev, domain: event.target.value }))}
+            className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white"
+          >
+            <option value="">Dominio</option>
+            {domains.map((domain) => (
+              <option key={domain} value={domain}>
+                {domain}
+              </option>
             ))}
-          </div>
-        </Card>
+          </select>
+          <select
+            value={filters.intensity}
+            onChange={(event) => setFilters((prev) => ({ ...prev, intensity: event.target.value }))}
+            className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white"
+          >
+            <option value="">Intensidad</option>
+            {intensities.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.hyrox}
+            onChange={(event) => setFilters((prev) => ({ ...prev, hyrox: event.target.value }))}
+            className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white"
+          >
+            <option value="">Estacion HYROX</option>
+            {hyroxStations.map((station) => (
+              <option key={station} value={station}>
+                {station}
+              </option>
+            ))}
+          </select>
+        </div>
       </Section>
+
+      {status === "error" && (
+        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          Error al cargar los workouts: {error}
+        </div>
+      )}
+
+      {filtered.length === 0 && status === "idle" && (
+        <p className="text-sm text-slate-400">No se encontraron WODs con estos filtros.</p>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {filtered.map((workout) => {
+          const typeHint = workout.wod_type?.toLowerCase() ?? "";
+          const tone: keyof typeof statTone = typeHint.includes("strength")
+            ? "strength"
+            : typeHint.includes("cardio")
+              ? "cardio"
+              : "hybrid";
+          return (
+            <Card key={workout.id} className="bg-slate-900/70 ring-1 ring-white/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{workout.wod_type}</p>
+                  <h3 className="text-xl font-semibold text-white">{workout.title}</h3>
+                  <p className="mt-1 text-sm text-slate-300">{workout.description}</p>
+                </div>
+                <div className="text-right text-sm text-slate-400">
+                  <p>{workout.avg_difficulty ? workout.avg_difficulty.toFixed(1) : "-"} KP</p>
+                  <p>{workout.avg_rating ? workout.avg_rating.toFixed(1) : "-"}?</p>
+                </div>
+              </div>
+              {renderTags(workout)}
+              <div className="mt-4 flex items-center justify-between text-sm text-slate-300">
+                <span>{workout.session_load || "Carga N/A"}</span>
+                <span className={`text-xs font-semibold ${statTone[tone]}`}>{tone.toUpperCase()}</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <Link href={`/workouts/${workout.id}`} className="text-sm font-semibold text-cyan-300">
+                  Ver detalle
+                </Link>
+                <span className="text-xs text-slate-400">
+                  {workout.avg_time_seconds ? `${Math.round(workout.avg_time_seconds / 60)} min` : "Tiempo s/n"}
+                </span>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

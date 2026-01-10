@@ -7,7 +7,18 @@ import {
   WorkoutBlock,
   WorkoutStats,
   AuthResponse,
-  RefreshResponse
+  RefreshResponse,
+  AthleteProfileResponse,
+  CareerSnapshot,
+  Achievement,
+  Mission,
+  Benchmark,
+  WorkoutAnalysis,
+  Equipment,
+  WorkoutResult,
+  WorkoutResultWithXp,
+  WorkoutCreatePayload,
+  ApplyWorkoutImpactResponse
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -38,12 +49,27 @@ export const api = {
     return fetchJson<Workout>(`/workouts/${id}`);
   },
 
+  async createWorkout(payload: WorkoutCreatePayload): Promise<Workout> {
+    return fetchJson<Workout>("/workouts", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
   async getWorkoutStructure(id: string | number): Promise<Workout> {
     return fetchJson<Workout>(`/workouts/${id}/structure`);
   },
 
   async getWorkoutBlocks(id: string | number): Promise<WorkoutBlock[]> {
     return fetchJson<WorkoutBlock[]>(`/workouts/${id}/blocks`);
+  },
+
+  async getWorkoutSimilar(id: string | number): Promise<Workout[]> {
+    return fetchJson<Workout[]>(`/workouts/${id}/similar`);
+  },
+
+  async getWorkoutResults(id: string | number): Promise<WorkoutResult[]> {
+    return fetchJson<WorkoutResult[]>(`/workout-results/workout/${id}`);
   },
 
   async getWorkoutVersions(id: string | number): Promise<Workout[]> {
@@ -74,7 +100,38 @@ export const api = {
   },
 
   async getEquipment() {
-    return fetchJson("/equipment");
+    return fetchJson<Equipment[]>("/equipment");
+  },
+
+  async getAthleteProfile(): Promise<AthleteProfileResponse> {
+    return fetchJson<AthleteProfileResponse>("/athlete/profile");
+  },
+
+  async getAthleteCareer(): Promise<CareerSnapshot> {
+    return fetchJson<CareerSnapshot>("/athlete/career");
+  },
+
+  async getAthleteAchievements(): Promise<Achievement[]> {
+    return fetchJson<Achievement[]>("/athlete/achievements");
+  },
+
+  async getAthleteMissions(): Promise<Mission[]> {
+    return fetchJson<Mission[]>("/athlete/missions");
+  },
+
+  async getAthleteBenchmarks(): Promise<Benchmark[]> {
+    return fetchJson<Benchmark[]>("/athlete/benchmarks");
+  },
+
+  async getWorkoutAnalysis(id: string | number): Promise<WorkoutAnalysis> {
+    return fetchJson<WorkoutAnalysis>(`/workouts/${id}/analysis`);
+  },
+
+  async analyzeWorkoutPayload(payload: WorkoutCreatePayload): Promise<WorkoutAnalysis> {
+    return fetchJson<WorkoutAnalysis>("/workout-analysis", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
   },
 
   async login(email: string, password: string): Promise<AuthResponse> {
@@ -101,5 +158,25 @@ export const api = {
 
   async me(): Promise<AuthResponse> {
     return fetchJson<AuthResponse>("/auth/me");
+  },
+
+  async submitWorkoutResult(
+    workoutId: string | number,
+    payload: { time_seconds: number; difficulty?: number; rating?: number; comment?: string }
+  ): Promise<WorkoutResultWithXp> {
+    return fetchJson<WorkoutResultWithXp>(`/athlete/workouts/${workoutId}/result`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async applyWorkoutImpact(
+    workoutId: string | number,
+    payload: { analysis_id?: number | string } = {}
+  ): Promise<ApplyWorkoutImpactResponse> {
+    return fetchJson<ApplyWorkoutImpactResponse>(`/athlete/workouts/${workoutId}/apply-impact`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
   }
 };
