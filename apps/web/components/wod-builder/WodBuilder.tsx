@@ -686,7 +686,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         if (!key) return undefined;
         const byMap = wbmMap.get(key);
         if (byMap) return byMap;
-        const bySource = block.movements.find((mv) => mv.source_key === key)?.uid;
+        const bySource = block.movements.find((mv) => (mv as any).source_key === key)?.uid;
         if (bySource) return bySource;
         const numeric = Number(key.replace(/[^0-9]/g, ""));
         const byId = block.movements.find((mv) => mv.movement.id === numeric)?.uid;
