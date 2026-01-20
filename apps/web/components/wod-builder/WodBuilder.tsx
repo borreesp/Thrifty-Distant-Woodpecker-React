@@ -617,7 +617,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
           calories: bm.calories ?? undefined,
           target_time_seconds: settings?.target_time_seconds ?? undefined,
           execution_mode: settings?.execution_mode ?? "INDIVIDUAL",
-          comment: bm.description ?? undefined
+          comment: (bm as any).description ?? (bm as any).comment ?? undefined
         };
         if (sourceKey) wbmMap.set(sourceKey, uidLocal);
         return hydrated;
