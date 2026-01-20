@@ -163,11 +163,12 @@ export default function DashboardPage() {
         .reduce((acc, t) => acc + (t.acute_load ?? 0), 0) ?? 0;
 
     const capsSource = data.capacities && data.capacities.length > 0 ? data.capacities : capacityProfile;
+    const getCapName = (c: any) => c?.capacity ?? c?.capacity_name ?? c?.capacity_code ?? "Capacidad";
     const topCapacity =
       capsSource && capsSource.length > 0
         ? capsSource.reduce<{ name: string; value: number } | undefined>((prev, curr) => {
             if (!prev || curr.value > prev.value) {
-              return { name: curr.capacity, value: curr.value };
+              return { name: getCapName(curr), value: curr.value };
             }
             return prev;
           }, undefined)
@@ -196,7 +197,13 @@ export default function DashboardPage() {
     const segments = caps.map((c, idx) => {
       const pct = (c.value || 0) / total;
       const dash = Math.max(0, pct * circumference);
-      const seg = { label: c.capacity, value: c.value, dash, offset: offsetAcc, color: palette[idx % palette.length] };
+      const seg = {
+        label: getCapName(c),
+        value: c.value,
+        dash,
+        offset: offsetAcc,
+        color: palette[idx % palette.length]
+      };
       offsetAcc += dash;
       return seg;
     });
