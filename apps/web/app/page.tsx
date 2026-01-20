@@ -43,7 +43,8 @@ export default function DashboardPage() {
           if (mounted) setLoadDetails(details);
           // fallback de capacidades si el perfil viene sin datos
           if (!profile.capacities?.length) {
-            const tryIds = [user.id, user.id === 1 ? 2 : undefined].filter(Boolean) as (number | string)[];
+            const userIdNum = Number(user.id);
+            const tryIds = [user.id, userIdNum === 1 ? 2 : undefined].filter(Boolean) as (number | string)[];
             for (const candidate of tryIds) {
               try {
                 const res = await api.getCapacityProfile(candidate);
