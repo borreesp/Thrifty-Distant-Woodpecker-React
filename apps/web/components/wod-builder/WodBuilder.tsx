@@ -1174,10 +1174,16 @@ export function BlockCard({
     const key = task.movement_key;
     if (key) {
       const bySourceMv = block.movements.find((mv) => (mv as any).source_key === key);
-      if (bySourceMv) return (bySourceMv as any).uid ?? `bm-${bySourceMv.id ?? key}`;
+      if (bySourceMv) {
+        const idFallback = (bySourceMv as any).id ?? bySourceMv.movement?.id ?? key;
+        return (bySourceMv as any).uid ?? `bm-${idFallback}`;
+      }
       const numeric = Number(key.replace(/[^0-9]/g, ""));
       const byIdMv = block.movements.find((mv) => mv.movement?.id === numeric);
-      if (byIdMv) return (byIdMv as any).uid ?? `bm-${byIdMv.id ?? key}`;
+      if (byIdMv) {
+        const idFallback = (byIdMv as any).id ?? byIdMv.movement?.id ?? key;
+        return (byIdMv as any).uid ?? `bm-${idFallback}`;
+      }
     }
     return (block.movements[idx] as any)?.uid ?? "";
   };
