@@ -119,7 +119,7 @@ export default function AthletePage() {
   const prs = useMemo(() => {
     const source = topPrs.length ? topPrs : data?.prs ?? [];
     return source.slice(0, 5).map((pr) => ({
-      name: pr.name ?? (pr as any).movement,
+      name: (pr as any).name ?? (pr as any).movement ?? "PR",
       score: `${pr.value}${pr.unit ? ` ${pr.unit}` : ""}`,
       date: pr.achieved_at ? new Date(pr.achieved_at).toLocaleDateString("es-ES") : "-"
     }));
