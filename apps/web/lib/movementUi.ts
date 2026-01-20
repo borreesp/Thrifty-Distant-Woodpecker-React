@@ -24,7 +24,8 @@ const defaultConfig = (overrides: Partial<MovementUIConfig> = {}): MovementUICon
   ...overrides
 });
 
-const normalizeCategory = (category?: string) => (category ?? "").toLowerCase();
+// Accept null/undefined categories coming from the API.
+const normalizeCategory = (category?: string | null) => (category ?? "").toLowerCase();
 
 const hasField = (list: FieldKey[], key: FieldKey) => list.includes(key);
 
