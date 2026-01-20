@@ -33,8 +33,12 @@ export default function AthletePage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    api.getAthleteSkillsTop(user.id, 5).then(setTopSkills).catch(() => setTopSkills([]));
-    api.getAthletePrsTop(user.id, 5).then(setTopPrs).catch(() => setTopPrs([]));
+    api.getAthleteSkillsTop(user.id, 5)
+      .then((res) => setTopSkills(res as AthleteSkillStat[]))
+      .catch(() => setTopSkills([]));
+    api.getAthletePrsTop(user.id, 5)
+      .then((res) => setTopPrs(res as AthletePrStat[]))
+      .catch(() => setTopPrs([]));
     if (!data?.capacities?.length) {
       const tryIds = [user.id, user.id === 1 ? 2 : undefined].filter(Boolean) as (number | string)[];
       (async () => {
