@@ -693,7 +693,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         return byId;
       };
 
-      
+
       if (scenarios && scenarios.length) {
         scenarios = scenarios.map((sc) => ({
           ...sc,
@@ -1170,11 +1170,12 @@ export function BlockCard({
   const resolveMovementUid = (task: { movement_uid?: string; movement_key?: string }, idx: number) => {
     if (task.movement_uid) return task.movement_uid;
     if (task.movement_key) {
-      const bySource = block.movements.find((mv) => mv.source_key === task.movement_key);
-      if (bySource) return bySource.uid;
-      const numeric = Number(task.movement_key.replace(/[^0-9]/g, ""));
-      const byId = block.movements.find((mv) => mv.movement.id === numeric);
-      if (byId) return byId.uid;
+      const bySourceMv = block.movements.find((mv) => (mv as any).source_key === key);
+      if (bySourceMv) return (bySourceMv as any).uid ?? `bm-${bySourceMv.id ?? key}`;
+      const numeric = Number(key.replace(/[^0-9]/g, ""));
+      const byIdMv = block.movements.find((mv) => mv.movement.id === numeric);
+      if (byIdMv) return (byIdMv as any).uid ?? `bm-${byIdMv.id ?? key}`;
+
     }
     return block.movements[idx]?.uid ?? "";
   };
