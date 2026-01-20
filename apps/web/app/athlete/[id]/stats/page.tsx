@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import type { Route } from "next";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { api } from "../../../../lib/api";
 import type { AthletePrStat, AthleteSkillStat, AthleteStatsOverview } from "../../../../lib/types";
@@ -87,7 +88,7 @@ export default function AthleteStatsPage() {
     setTab(next);
     if (athleteId) {
       const url = `/athlete/${athleteId}/stats?tab=${next}&metric=${metricFilter}`;
-      router.replace(url);
+      router.replace(url as Route);
     }
   };
 
