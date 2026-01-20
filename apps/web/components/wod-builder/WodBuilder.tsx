@@ -686,11 +686,12 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         if (!key) return undefined;
         const byMap = wbmMap.get(key);
         if (byMap) return byMap;
-        const bySource = block.movements.find((mv) => (mv as any).source_key === key)?.uid;
-        if (bySource) return bySource;
+        const bySourceMv = block.movements.find((mv) => (mv as any).source_key === key);
+        if (bySourceMv) return (bySourceMv as any).uid ?? `bm-${bySourceMv.id ?? key}`;
         const numeric = Number(key.replace(/[^0-9]/g, ""));
-        const byId = block.movements.find((mv) => mv.movement.id === numeric)?.uid;
-        return byId;
+        const byIdMv = block.movements.find((mv) => mv.movement.id === numeric);
+        if (byIdMv) return (byIdMv as any).uid ?? `bm-${byIdMv.id ?? key}`;
+        return undefined;
       };
 
 
@@ -709,7 +710,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         scenarios = [
           {
             label: "A",
-            tasks: block.movements.map((mv) => ({ movement_uid: mv.uid, role: "STANDARD" }))
+            tasks: block.movements.map((mv, idx) => ({ movement_uid: (mv as any).uid ?? `bm-${mv.id ?? idx}`, role: "STANDARD" }))
           }
         ];
         pattern = ["A"];
