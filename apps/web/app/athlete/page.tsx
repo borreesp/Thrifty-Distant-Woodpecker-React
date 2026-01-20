@@ -40,7 +40,8 @@ export default function AthletePage() {
       .then((res) => setTopPrs(res as AthletePrStat[]))
       .catch(() => setTopPrs([]));
     if (!data?.capacities?.length) {
-      const tryIds = [user.id, user.id === 1 ? 2 : undefined].filter(Boolean) as (number | string)[];
+      const userIdNum = Number(user.id);
+      const tryIds = [user.id, userIdNum === 1 ? 2 : undefined].filter(Boolean) as (number | string)[];
       (async () => {
         for (const candidate of tryIds) {
           try {
