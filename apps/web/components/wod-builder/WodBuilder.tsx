@@ -693,6 +693,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         return byId;
       };
 
+      
       if (scenarios && scenarios.length) {
         scenarios = scenarios.map((sc) => ({
           ...sc,
