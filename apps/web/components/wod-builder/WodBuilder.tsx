@@ -1194,7 +1194,7 @@ export function BlockCard({
   };
 
   const handleAddScenario = () => {
-    onUpdateBlock(block.id, { scenarios: [...scenarios, { label: nextLabel }] });
+    onUpdateBlock(block.id, { scenarios: [...scenarios, { label: nextLabel, tasks: [] }] });
   };
 
   const handleAddPatternEntry = (label?: string) => {
