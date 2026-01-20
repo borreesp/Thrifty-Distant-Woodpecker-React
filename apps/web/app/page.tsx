@@ -188,6 +188,7 @@ export default function DashboardPage() {
   }, [data, loadDetails, loadBars, capacityProfile]);
 
   const capacityChart = useMemo(() => {
+    const getCapName = (c: any) => c?.capacity ?? c?.capacity_name ?? c?.capacity_code ?? "Capacidad";
     const caps = (data?.capacities?.length ? data.capacities : capacityProfile || []).slice(0, 6);
     const total = caps.reduce((acc, c) => acc + (c.value || 0), 0) || 1;
     const radius = 36;
