@@ -33,6 +33,7 @@ type Props = {
   user?: AuthUser | null;
   results?: WorkoutResult[];
   similarWorkouts?: Workout[];
+  versions?: Workout[];
   athleteImpact?: ImpactMap | null;
   applyHref?: string;
   onApplyTraining?: () => void;
