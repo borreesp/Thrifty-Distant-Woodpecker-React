@@ -14,15 +14,6 @@ const quickActions: { label: string; hint: string; href: Route }[] = [
   { label: "Atleta", hint: "Perfil y progreso", href: "/athlete" }
 ];
 
-const suggestions = [
-  {
-    title: "Sin recomendaciones",
-    detail: "Registra o analiza un WOD para ver sugerencias personalizadas.",
-    cta: "Analizar WOD",
-    accent: "from-slate-800/60 to-slate-900/30"
-  }
-];
-
 type QuickMetrics = {
   xp: number;
   sessions7d: number;
@@ -210,6 +201,45 @@ export default function DashboardPage() {
     });
     return { segments, radius, circumference };
   }, [data, capacityProfile]);
+
+  const suggestions = useMemo(() => {
+    const out: { title: string; detail: string; cta: string; accent: string; href?: Route }[] = [];
+    const fatigueScore = data?.biometrics?.fatigue_score ?? quick.fatigue ?? null;
+    const loadRatio = data?.training_load?.[0]?.load_ratio ?? null;
+    const hasHighFatigue = (fatigueScore ?? 0) >= 70 || (loadRatio ?? 0) > 1.2;
+
+    if (hasHighFatigue) {
+      out.push({
+        title: "Descanso activo",
+        detail: "Z2 30-40 min + movilidad. Reduce fatiga acumulada.",
+        cta: "Iniciar",
+        accent: "from-emerald-700/70 to-slate-900/60",
+        href: "/workouts"
+      });
+    }
+
+    if (quick.sessions7d >= 2 && quick.topCapacity) {
+      out.push({
+        title: `PR ${quick.topCapacity.name}`,
+        detail: "2 x (10:00) tempo 75% + 2 x 2:00 sprint. Calienta bien y anota marcas.",
+        cta: "Planificar",
+        accent: "from-cyan-700/70 to-indigo-700/60",
+        href: "/workouts"
+      });
+    }
+
+    if (!out.length) {
+      out.push({
+        title: "Sin recomendaciones",
+        detail: "Registra o analiza un WOD para ver sugerencias personalizadas.",
+        cta: "Analizar WOD",
+        accent: "from-slate-800/60 to-slate-900/30",
+        href: "/wod-analysis"
+      });
+    }
+
+    return out;
+  }, [data?.biometrics?.fatigue_score, data?.training_load, quick.fatigue, quick.sessions7d, quick.topCapacity]);
 
   return (
     <div className="space-y-8">

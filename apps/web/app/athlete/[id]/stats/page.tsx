@@ -36,11 +36,11 @@ export default function AthleteStatsPage() {
       api.getAthleteSkills(athleteId),
       api.getAthletePrs(athleteId),
       api.getAthleteStatsOverview(athleteId)
-    ])
+    ] as const)
       .then(([skillsRes, prsRes, overviewRes]) => {
-        setSkills(skillsRes);
-        setPrs(prsRes);
-        setOverview(overviewRes);
+        setSkills(skillsRes as AthleteSkillStat[]);
+        setPrs(prsRes as AthletePrStat[]);
+        setOverview(overviewRes as AthleteStatsOverview);
         setError(null);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "No se pudieron cargar las stats"))
