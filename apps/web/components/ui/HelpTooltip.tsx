@@ -26,7 +26,13 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({ helpKey, className = "
     setOpen(false);
   };
 
-  useEffect(() => () => timer.current && clearTimeout(timer.current), []);
+  useEffect(() => {
+    return () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    };
+  }, []);
 
   const posClasses =
     placement === "top"
