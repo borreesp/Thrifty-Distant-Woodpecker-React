@@ -721,7 +721,8 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         scenarios = scenarios.map((sc) => {
           const tasks = (sc.tasks ?? []).map((t, idx) => {
             if (!t.movement_uid && block.movements[idx]) {
-              return { ...t, movement_uid: block.movements[idx].uid };
+              const mv = block.movements[idx] as any;
+              return { ...t, movement_uid: mv.uid ?? `bm-${mv.id ?? idx}` };
             }
             return t;
           });
