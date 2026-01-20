@@ -1188,7 +1188,7 @@ export function BlockCard({
     return (block.movements[idx] as any)?.uid ?? "";
   };
 
-  const handleScenarioChange = (idx: number, update: Partial<WodBlock["scenarios"][number]>) => {
+  const handleScenarioChange = (idx: number, update: Partial<NonNullable<WodBlock["scenarios"]>[number]>) => {
     const updated = scenarios.map((s, i) => (i === idx ? { ...s, ...update } : s));
     onUpdateBlock(block.id, { scenarios: updated });
   };
