@@ -1170,15 +1170,15 @@ export function BlockCard({
   const nextLabel = String.fromCharCode(65 + scenarios.length);
   const resolveMovementUid = (task: { movement_uid?: string; movement_key?: string }, idx: number) => {
     if (task.movement_uid) return task.movement_uid;
-    if (task.movement_key) {
+    const key = task.movement_key;
+    if (key) {
       const bySourceMv = block.movements.find((mv) => (mv as any).source_key === key);
       if (bySourceMv) return (bySourceMv as any).uid ?? `bm-${bySourceMv.id ?? key}`;
       const numeric = Number(key.replace(/[^0-9]/g, ""));
-      const byIdMv = block.movements.find((mv) => mv.movement.id === numeric);
+      const byIdMv = block.movements.find((mv) => mv.movement?.id === numeric);
       if (byIdMv) return (byIdMv as any).uid ?? `bm-${byIdMv.id ?? key}`;
-
     }
-    return block.movements[idx]?.uid ?? "";
+    return (block.movements[idx] as any)?.uid ?? "";
   };
 
   const handleScenarioChange = (idx: number, update: Partial<WodBlock["scenarios"][number]>) => {
