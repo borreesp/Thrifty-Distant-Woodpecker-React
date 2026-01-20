@@ -65,6 +65,7 @@ type WodBlock = {
   scenario_rest_seconds?: number;
   rounds?: number;
   pattern?: string[];
+  synchro?: boolean;
   team_mode?: "individual" | "pairs";
   default_team_mode?: "individual" | "pairs";
   scenarios?: Array<{
