@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import type { Route } from "next";
 import { useParams, useRouter } from "next/navigation";
 import { WorkoutDetailLayout } from "../../../../components/workout/WorkoutDetailLayout";
 import { api } from "../../../../lib/api";
@@ -91,7 +92,7 @@ export default function WodAnalysisResultPage() {
 
   const handleGoToTime = () => {
     if (!timeRoute) return;
-    router.push(timeRoute);
+    router.push(timeRoute as Route);
   };
 
   if (workoutState.loading) return <p className="text-sm text-slate-400">Cargando analisis...</p>;
