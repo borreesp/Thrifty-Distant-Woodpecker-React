@@ -579,12 +579,12 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
   const blocks: WodBlock[] =
     workout.blocks?.map((block, blockIndex) => {
       const intervalMeta = intervalBlocks[`blockId:${block.id}`] ?? null;
-      const engine = intervalMeta?.engine as WodBlock["block_type"] | undefined;
+      const engineRaw = (intervalMeta?.engine as string | undefined) ?? undefined;
       // Normalizamos tipos: INTERVALS (work/rest), ROUNDS (sin descanso) o STANDARD
       const blockType: WodBlock["block_type"] =
-        engine === "ROUNDS"
+        engineRaw === "ROUNDS"
           ? "ROUNDS"
-          : engine === "INTERVALS" || engine === "INTERVALS_WORK_REST"
+          : engineRaw?.startsWith("INTERVAL")
             ? "INTERVALS"
             : intervalMeta
               ? "INTERVALS"
