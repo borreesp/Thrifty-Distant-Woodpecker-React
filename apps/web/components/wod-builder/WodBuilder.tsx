@@ -676,7 +676,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
         scenarios = [
           {
             label: "A",
-            tasks: block.movements.map((mv) => ({ movement_uid: mv.uid, role: "STANDARD" }))
+            tasks: block.movements.map((mv, idx) => ({ movement_uid: (mv as any).uid ?? `bm-${mv.id ?? idx}`, role: "STANDARD" }))
           }
         ];
       }
