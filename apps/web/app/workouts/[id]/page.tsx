@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { WorkoutDetailLayout } from "../../../components/workout/WorkoutDetailLayout";
 import { api } from "../../../lib/api";
 import type {
@@ -17,16 +17,17 @@ type LoadState<T> = { data: T | null; loading: boolean; error?: string | null };
 export default function WorkoutDetailPage() {
   const params = useParams<{ id: string }>();
   const workoutId = params?.id;
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [workoutState, setWorkoutState] = useState<LoadState<Workout>>({ data: null, loading: true });
   const [analysisState, setAnalysisState] = useState<LoadState<WorkoutAnalysis>>({ data: null, loading: true });
   const [similarState, setSimilarState] = useState<LoadState<Workout[]>>({ data: null, loading: true });
   const [resultsState, setResultsState] = useState<LoadState<WorkoutResult[]>>({ data: null, loading: true });
+  const [versionsState, setVersionsState] = useState<LoadState<Workout[]>>({ data: null, loading: true });
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [athleteProfile, setAthleteProfile] = useState<AthleteProfileResponse | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [savingResult, setSavingResult] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workoutId) return;
@@ -34,6 +35,7 @@ export default function WorkoutDetailPage() {
     setAnalysisState((prev) => ({ ...prev, loading: true }));
     setSimilarState((prev) => ({ ...prev, loading: true }));
     setResultsState((prev) => ({ ...prev, loading: true }));
+    setVersionsState((prev) => ({ ...prev, loading: true }));
 
     Promise.all([
       api.getWorkoutStructure(workoutId),
@@ -42,15 +44,17 @@ export default function WorkoutDetailPage() {
       api.getEquipment().catch(() => []),
       api.getAthleteProfile().catch(() => null),
       api.getWorkoutResults?.(workoutId).catch(() => []),
+      api.getWorkoutVersions?.(workoutId).catch(() => []),
       api.me().catch(() => null)
     ])
-      .then(([workoutPayload, analysisPayload, similarPayload, equipmentPayload, athletePayload, resultsPayload, mePayload]) => {
+      .then(([workoutPayload, analysisPayload, similarPayload, equipmentPayload, athletePayload, resultsPayload, versionsPayload, mePayload]) => {
         setWorkoutState({ data: workoutPayload, loading: false });
         setAnalysisState({ data: analysisPayload, loading: false });
         setSimilarState({ data: similarPayload, loading: false });
         setEquipment(equipmentPayload ?? []);
         setAthleteProfile(athletePayload);
         setResultsState({ data: resultsPayload ?? [], loading: false });
+        setVersionsState({ data: versionsPayload ?? [], loading: false });
         setUser(mePayload?.user ?? null);
       })
       .catch((err) => {
@@ -58,39 +62,20 @@ export default function WorkoutDetailPage() {
         setWorkoutState({ data: null, loading: false, error: message });
         setAnalysisState((prev) => ({ ...prev, loading: false, error: message }));
         setResultsState((prev) => ({ data: prev.data ?? [], loading: false, error: message }));
+        setVersionsState((prev) => ({ data: prev.data ?? [], loading: false, error: message }));
       });
   }, [workoutId]);
 
   const workout = workoutState.data;
   const analysis = analysisState.data;
-
-  const handleSubmit = async (formState: { time_seconds: number; difficulty: number; rating: number; comment: string }) => {
-    if (!workoutId) return;
-    setSavingResult(true);
-    setFeedback(null);
-    try {
-      const response = await api.submitWorkoutResult(workoutId, formState);
-      if (response?.result) {
-        setResultsState((prev) => ({
-          data: [...(prev.data ?? []), response.result],
-          loading: false,
-          error: null
-        }));
-      }
-      setFeedback(response ? `Guardado. +${response.xp_awarded} XP (nivel ${response.level}).` : "Resultado guardado.");
-    } catch (err) {
-      setFeedback(err instanceof Error ? err.message : "Error inesperado");
-    } finally {
-      setSavingResult(false);
-    }
-  };
+  const applyMessage = searchParams?.get("saved") === "time" ? "Tiempo registrado correctamente." : null;
 
   if (workoutState.loading) {
-    return <p className="text-sm text-slate-400">Cargando workout...</p>;
+    return <p className="text-sm text-slate-400">Cargando WOD...</p>;
   }
 
   if (!workout) {
-    return <p className="text-sm text-rose-300">Workout no encontrado.</p>;
+    return <p className="text-sm text-rose-300">WOD no encontrado.</p>;
   }
 
   return (
@@ -102,10 +87,13 @@ export default function WorkoutDetailPage() {
       athleteProfile={athleteProfile}
       user={user}
       results={resultsState.data ?? []}
+      versions={versionsState.data ?? []}
       similarWorkouts={similarState.data ?? []}
-      feedback={feedback}
-      savingResult={savingResult}
-      onSubmitResult={handleSubmit}
+      applyHref={workoutId ? `/workouts/${workoutId}/time` : undefined}
+      onApplyTraining={workoutId ? () => router.push(`/workouts/${workoutId}/time`) : undefined}
+      applyMessage={applyMessage}
+      editHref={workoutId ? `/workouts/structure?editWorkoutId=${workoutId}` : undefined}
+      onEditWorkout={workoutId ? () => router.push(`/workouts/structure?editWorkoutId=${workoutId}`) : undefined}
     />
   );
 }

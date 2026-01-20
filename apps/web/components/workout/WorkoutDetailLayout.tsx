@@ -1,6 +1,6 @@
 ﻿
 "use client";
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button, Card, Section } from "@thrifty/ui";
 import { BarLevelChart } from "../charts/BarLevelChart";
 import { LinearProgressBar } from "../charts/LinearProgressBar";
@@ -20,8 +20,6 @@ import type {
   WorkoutBlockMovement
 } from "../../lib/types";
 
-type ResultFormState = { time_seconds: number; difficulty: number; rating: number; comment: string };
-
 type TimelineBlock = { label: string; blocks: WorkoutBlock[] };
 type CapacityGap = { title: string; target: number; athlete: number; delta: number };
 type ImpactMap = Record<string, number | undefined>;
@@ -35,14 +33,14 @@ type Props = {
   user?: AuthUser | null;
   results?: WorkoutResult[];
   similarWorkouts?: Workout[];
-  feedback?: string | null;
-  savingResult?: boolean;
-  onSubmitResult?: (payload: ResultFormState) => Promise<void>;
   athleteImpact?: ImpactMap | null;
-  onApplyImpact?: () => void;
-  impactApplied?: boolean;
-  applyingImpact?: boolean;
-  applyError?: string | null;
+  applyHref?: string;
+  onApplyTraining?: () => void;
+  applyDisabled?: boolean;
+  applyLoading?: boolean;
+  applyMessage?: string | null;
+  editHref?: string;
+  onEditWorkout?: () => void;
 };
 
 const panelCard =
@@ -179,17 +177,16 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   user,
   results = [],
   similarWorkouts = [],
-  feedback,
-  savingResult = false,
-  onSubmitResult,
   athleteImpact,
-  onApplyImpact,
-  impactApplied = false,
-  applyingImpact = false,
-  applyError = null
+  applyHref,
+  onApplyTraining,
+  applyDisabled,
+  applyLoading,
+  applyMessage,
+  editHref,
+  onEditWorkout,
+  versions = []
 }) => {
-  const [formState, setFormState] = useState<ResultFormState>({ time_seconds: 0, difficulty: 8, rating: 4, comment: "" });
-
   const levelTimes = useMemo(() => workout?.level_times ?? [], [workout]);
   const levelChartData = useMemo(
     () => levelTimes.map((lt) => ({ label: lt.athlete_level, value: lt.time_minutes, range: lt.time_range })),
@@ -198,7 +195,7 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   const equipmentMap = useMemo(() => Object.fromEntries(equipment.map((eq) => [eq.id, eq])), [equipment]);
   const equipmentList = useMemo(() => (workout?.equipment_ids ?? []).map((id) => equipmentMap[id]).filter(Boolean) as Equipment[], [workout, equipmentMap]);
 
-  const athleteLevelCode = athleteProfile ? `L${athleteProfile.career.level}` : null;
+  const athleteLevelCode = athleteProfile?.career?.level != null ? `L${athleteProfile.career.level}` : null;
   const estimatedForUser = levelTimes.find((lt) => lt.athlete_level === athleteLevelCode) ?? levelTimes[0];
 
   const timeline: TimelineBlock[] = useMemo(() => {
@@ -256,8 +253,9 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   const capacityGap = useMemo<CapacityGap | null>(() => {
     if (!athleteProfile || !workout?.capacities?.length) return null;
     let gapItem: CapacityGap | null = null;
+    const athleteCaps = athleteProfile.capacities ?? [];
     workout.capacities.forEach((cap) => {
-      const athleteCap = athleteProfile.capacities.find((c) => c.capacity.toLowerCase() === (cap.capacity || "").toLowerCase());
+      const athleteCap = athleteCaps.find((c) => c.capacity.toLowerCase() === (cap.capacity || "").toLowerCase());
       const athleteValue = athleteCap?.value ?? 0;
       const delta = cap.value - athleteValue;
       if (!gapItem || delta > gapItem.delta) {
@@ -279,29 +277,24 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   }, [athleteProfile, mainMovement]);
 
   const radarData = useMemo(() => {
-    if (capacityDetails.length) {
-      return capacityDetails.map((cap) => ({ label: cap.capacity, value: cap.value }));
+    const baseCaps = ["Fuerza", "Resistencia", "Metcon", "Gimnásticos", "Velocidad", "Carga muscular"];
+    const map = new Map<string, number>();
+    baseCaps.forEach((c) => map.set(c, 0));
+
+    capacityDetails.forEach((cap) => {
+      if (!cap?.capacity) return;
+      map.set(cap.capacity, Math.max(0, Math.min(100, cap.value ?? 0)));
+    });
+
+    if (!capacityDetails.length && analysis?.capacity_focus?.length) {
+      analysis.capacity_focus.forEach((cap) => {
+        const val = parseInt((cap.emphasis || "60").split("/")[0], 10) || 60;
+        map.set(cap.capacity, Math.max(0, Math.min(100, val)));
+      });
     }
-    if (analysis?.capacity_focus?.length) {
-      return analysis.capacity_focus.map((cap) => ({
-        label: cap.capacity,
-        value: parseInt((cap.emphasis || "60").split("/")[0], 10) || 60
-      }));
-    }
-    return [];
+
+    return Array.from(map.entries()).map(([label, value]) => ({ label, value }));
   }, [capacityDetails, analysis]);
-
-  useEffect(() => {
-    if (estimatedForUser?.time_minutes && formState.time_seconds === 0) {
-      setFormState((prev) => ({ ...prev, time_seconds: Math.round(estimatedForUser.time_minutes * 60) }));
-    }
-  }, [estimatedForUser?.time_minutes, formState.time_seconds]);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!onSubmitResult) return;
-    await onSubmitResult(formState);
-  };
 
   const impactData = useMemo(
     () => athleteImpact ?? ((analysis as any)?.athlete_impact as ImpactMap | undefined) ?? buildFallbackImpact(workout, analysis),
@@ -355,6 +348,47 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
   const showComparative = mode === "workout" || Boolean(athleteProfile);
   const showResultsSection = mode === "workout";
   const showSimilar = (similarWorkouts?.length ?? 0) > 0;
+  const rootWorkoutId = workout?.parent_workout_id ?? workout?.id;
+  const versionsList = useMemo(() => {
+    if (!workout) return [];
+    const raw = [...(versions ?? []), workout];
+    const filtered = raw.filter((v, idx, arr) => {
+      if (!v) return false;
+      if (v.parent_workout_id && v.parent_workout_id !== rootWorkoutId) return false;
+      if (!v.parent_workout_id && v.id !== rootWorkoutId) return false;
+      return arr.findIndex((other) => other?.id === v.id) === idx;
+    });
+    return filtered.sort((a, b) => {
+      if (a.is_active && !b.is_active) return -1;
+      if (!a.is_active && b.is_active) return 1;
+      const versionA = a.version ?? 0;
+      const versionB = b.version ?? 0;
+      if (versionA !== versionB) return versionB - versionA;
+      const dateA = a.updated_at ?? a.created_at ?? "";
+      const dateB = b.updated_at ?? b.created_at ?? "";
+      return dateA > dateB ? -1 : 1;
+    });
+  }, [versions, workout, rootWorkoutId]);
+
+  const applyActionDisabled = applyDisabled || applyLoading || (!onApplyTraining && !applyHref);
+
+  const applyButton = (
+    <Button
+      variant="secondary"
+      onClick={onApplyTraining}
+      href={onApplyTraining ? undefined : applyHref}
+      disabled={applyActionDisabled}
+    >
+      {applyLoading ? "Aplicando..." : "Aplicar entrenamiento"}
+    </Button>
+  );
+
+  const editButton =
+    mode === "workout" && (onEditWorkout || editHref) ? (
+      <Button variant="ghost" onClick={onEditWorkout} href={onEditWorkout ? undefined : editHref}>
+        Editar
+      </Button>
+    ) : null;
 
   return (
     <div className="space-y-10">
@@ -362,7 +396,7 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-400">
-              <span>{mode === "analysis" ? "Resultado de analisis" : "Workout detail"}</span>
+              <span>{mode === "analysis" ? "Resultado de analisis" : "Detalle del WOD"}</span>
               {workout.official_tag && <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] text-white">{workout.official_tag}</span>}
               {mode === "analysis" && <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-semibold text-emerald-200">Analizado</span>}
             </div>
@@ -376,7 +410,7 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
               {workout.main_muscle_chain && <Badge variant="outline">Musculo {workout.main_muscle_chain}</Badge>}
             </div>
             <div className="flex flex-wrap gap-3 text-sm text-slate-300">
-              {workout.work_rest_ratio && <span className="rounded-full bg-white/5 px-3 py-1">Work/Rest {workout.work_rest_ratio}</span>}
+              {workout.work_rest_ratio && <span className="rounded-full bg-white/5 px-3 py-1">Trabajo/Descanso {workout.work_rest_ratio}</span>}
               {workout.volume_total && <span className="rounded-full bg-white/5 px-3 py-1">Volumen {workout.volume_total}</span>}
               {analysis?.pacing?.tip && <span className="rounded-full bg-white/5 px-3 py-1">Pacing: {analysis.pacing.tip}</span>}
             </div>
@@ -391,34 +425,19 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
                 </Button>
               )}
               <Button variant="ghost" href="/workouts">
-                Ver workouts
+                Ver WODs
               </Button>
-              {mode === "analysis" &&
-                (impactApplied ? (
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200">
-                    Impacto aplicado
-                  </span>
-                ) : (
-                  onApplyImpact && (
-                    <Button variant="secondary" onClick={onApplyImpact} disabled={applyingImpact}>
-                      {applyingImpact ? "Aplicando..." : "Aplicar entrenamiento"}
-                    </Button>
-                  )
-                ))}
-              {mode === "workout" && (
-                <Button variant="secondary" href="#registrar-resultado">
-                  Registrar resultado
-                </Button>
-              )}
+              {editButton}
+              {applyButton}
             </div>
-            {applyError && <p className="text-xs text-rose-200">{applyError}</p>}
+            {applyMessage && <p className="text-xs text-emerald-200">{applyMessage}</p>}
           </div>
           <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-[420px]">
             <Card className={statCard}>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{mode === "analysis" ? "Fatiga real" : "Dificultad estimada"}</p>
               <div className="mt-3 flex items-end justify-between">
                 <span className="text-4xl font-semibold text-white">{fatigueValue ?? "-"}</span>
-                <span className="text-xs text-slate-400">Ratings {workout.rating_count ?? 0}</span>
+                <span className="text-xs text-slate-400">Valoraciones {workout.rating_count ?? 0}</span>
               </div>
               <LinearProgressBar value={((fatigueValue ?? 0) / 10) * 100} color="#22d3ee" />
               <p className="text-[11px] text-slate-400">
@@ -581,6 +600,13 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
         description="Timeline real: warm-up, skill, main y finisher con cargas y notas."
         className={sectionShell}
       >
+        {editButton && (
+          <div className="mb-4 flex justify-end">
+            <Button variant="primary" href={editHref} onClick={onEditWorkout}>
+              Editar en Estructura
+            </Button>
+          </div>
+        )}
         <div className="space-y-5 px-1 md:px-0">
           {timeline.map((group) => (
             <div
@@ -732,7 +758,7 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
           <Card className={panelCard}>
             <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Dificultad estimada</p>
             <p className="mt-2 text-3xl font-semibold text-white">{workout.estimated_difficulty ?? "-"}</p>
-            <p className="text-xs text-slate-500">Rating medio: {workout.avg_rating ?? "-"}</p>
+            <p className="text-xs text-slate-500">Valoracion media: {workout.avg_rating ?? "-"}</p>
           </Card>
           <Card className={panelCard}>
             <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Tiempo medio</p>
@@ -789,8 +815,8 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
               <div className="grid gap-4 lg:grid-cols-4">
                 <Card className={panelCard}>
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Nivel actual</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">L{athleteProfile.career.level}</p>
-                  <p className="text-xs text-slate-500">XP total {athleteProfile.career.xp_total}</p>
+                  <p className="mt-2 text-3xl font-semibold text-white">L{athleteProfile?.career?.level ?? 0}</p>
+                  <p className="text-xs text-slate-500">XP total {athleteProfile?.career?.xp_total ?? 0}</p>
                 </Card>
                 <Card className={panelCard}>
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Capacidad critica</p>
@@ -874,7 +900,7 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
                     >
                       <p className="font-semibold text-white">{formatSeconds(res.time_seconds)}</p>
                       <p className="text-[11px] text-slate-400">
-                        Diff {res.difficulty ?? "-"} ú Rating {res.rating ?? "-"} ú ID {res.id}
+                        Dificultad {res.difficulty ?? "-"} · Valoracion {res.rating ?? "-"} · ID {res.id}
                       </p>
                     </div>
                   ))}
@@ -923,66 +949,43 @@ export const WorkoutDetailLayout: React.FC<Props> = ({
         </Section>
       )}
 
-      {mode === "workout" && onSubmitResult && (
-        <Section
-          id="registrar-resultado"
-          title="Registrar resultado"
-          description="Captura tu tiempo, dificultad y notas para cobrar XP."
-          className={sectionShell}
-        >
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid gap-3 md:grid-cols-4">
-              <label className="space-y-1 text-xs text-slate-400">
-                Tiempo total (s)
-                <input
-                  type="number"
-                  value={formState.time_seconds}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, time_seconds: Number(event.target.value) }))}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white"
-                  required
-                />
-              </label>
-              <label className="space-y-1 text-xs text-slate-400">
-                Dificultad percibida
-                <input
-                  type="number"
-                  value={formState.difficulty}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, difficulty: Number(event.target.value) }))}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white"
-                  min={1}
-                  max={10}
-                />
-              </label>
-              <label className="space-y-1 text-xs text-slate-400">
-                Rating
-                <input
-                  type="number"
-                  value={formState.rating}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, rating: Number(event.target.value) }))}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white"
-                  min={1}
-                  max={5}
-                />
-              </label>
-              <label className="space-y-1 text-xs text-slate-400">
-                Notas
-                <input
-                  type="text"
-                  value={formState.comment}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, comment: event.target.value }))}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white"
-                />
-              </label>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <Button type="submit" variant="primary" disabled={savingResult}>
-                {savingResult ? "Guardando..." : "Registrar resultado"}
-              </Button>
-              {feedback && <p className="text-sm text-slate-300">{feedback}</p>}
-            </div>
-          </form>
-        </Section>
-      )}
+      <Section
+        title="Versiones del WOD"
+        description="Historial de revisiones de este entrenamiento."
+        className={sectionShell}
+      >
+        <div className="space-y-3">
+          {versionsList.length ? (
+            versionsList.map((v) => (
+              <Card key={v.id} className={panelCard}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      v{v.version ?? "?"} — {v.title}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {v.wod_type ?? "WOD"} • {v.domain ?? "Dominio N/A"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={v.is_active ? "solid" : "ghost"}>{v.is_active ? "ACTIVA" : "ANTERIOR"}</Badge>
+                    <span className="text-xs text-slate-400">{v.updated_at ?? v.created_at ?? ""}</span>
+                    <Button variant="ghost" href={`/workouts/${v.id}`}>
+                      Ver
+                    </Button>
+                    <Button variant="secondary" href={`/workouts/structure?editWorkoutId=${v.id}`}>
+                      Editar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <p className="text-sm text-slate-400">Este WOD no tiene revisiones todavía.</p>
+          )}
+        </div>
+      </Section>
+
     </div>
   );
 };

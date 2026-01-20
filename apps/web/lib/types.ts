@@ -49,6 +49,7 @@ export type WorkoutBlock = {
 
 export type Workout = {
   id: number;
+  parent_workout_id?: number | null;
   title: string;
   description: string;
   domain?: string | null;
@@ -57,6 +58,8 @@ export type Workout = {
   wod_type: string;
   version?: number | null;
   is_active?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   session_load?: string | null;
   session_feel?: string | null;
   volume_total?: string | null;
@@ -109,6 +112,9 @@ export type WorkoutCreatePayload = {
   intensity?: string | null;
   hyrox_transfer?: string | null;
   wod_type: string;
+  parent_workout_id?: number | null;
+  version?: number | null;
+  is_active?: boolean | null;
   volume_total: string;
   work_rest_ratio: string;
   dominant_stimulus: string;
@@ -192,6 +198,17 @@ export type TrainingLoad = {
   acute_load?: number | null;
   chronic_load?: number | null;
   load_ratio?: number | null;
+  notes?: string | null;
+};
+
+export type TrainingLoadDetail = {
+  id: number;
+  workout_id?: number | null;
+  workout_title?: string | null;
+  load_date: string | null;
+  executed_at?: string | null;
+  acute_load?: number | null;
+  chronic_load?: number | null;
   notes?: string | null;
 };
 
@@ -343,4 +360,35 @@ export type ApplyWorkoutImpactResponse = {
   impact: AthleteImpactDelta;
   updated_profile?: AthleteProfileResponse;
   analysis?: WorkoutAnalysis;
+};
+
+export type AthleteSkillStat = {
+  key?: string | number;
+  name: string;
+  category?: string | null;
+  unit?: string | null;
+  value: number;
+  measured_at?: string;
+};
+
+export type AthletePrStat = {
+  name: string;
+  type?: string | null;
+  value: number;
+  unit?: string | null;
+  achieved_at?: string;
+};
+
+export type AthleteStatsOverview = {
+  topSkills: AthleteSkillStat[];
+  topPrs: AthletePrStat[];
+  totals: {
+    skills_total?: number | null;
+    prs_total?: number | null;
+    total_reps?: number | null;
+    total_kg?: number | null;
+    total_meters?: number | null;
+    total_cals?: number | null;
+    total_seconds?: number | null;
+  };
 };

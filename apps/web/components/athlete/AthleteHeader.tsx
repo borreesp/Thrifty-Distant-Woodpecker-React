@@ -10,7 +10,15 @@ export const AthleteHeader: React.FC<{
   age?: string;
   state: string;
   progress: number;
-}> = ({ name, level, xp, avatar, age, state, progress }) => {
+  statusTone?: "verde" | "amarillo" | "rojo";
+}> = ({ name, level, xp, avatar, age, state, progress, statusTone = "verde" }) => {
+  const statusColors: Record<"verde" | "amarillo" | "rojo", string> = {
+    verde: "border-emerald-400/40 bg-emerald-500/10 text-emerald-100",
+    amarillo: "border-amber-400/40 bg-amber-500/10 text-amber-100",
+    rojo: "border-rose-400/40 bg-rose-500/10 text-rose-100"
+  };
+  const cleanProgress = Number.isFinite(progress) ? Math.max(0, Math.min(Math.floor(progress), 99)) : 0;
+
   return (
     <motion.header
       initial={{ opacity: 0, y: 10 }}
@@ -31,8 +39,10 @@ export const AthleteHeader: React.FC<{
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 text-sm text-slate-200">
-          <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-emerald-100">Estado: {state}</span>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
+          <span className={`inline-flex min-h-[36px] items-center justify-center rounded-full px-3 ${statusColors[statusTone]}`}>
+            Estado: {state}
+          </span>
           <div className="flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2 ring-1 ring-white/10">
             <div className="relative h-16 w-16">
               <svg viewBox="0 0 36 36" className="h-16 w-16">
@@ -42,15 +52,15 @@ export const AthleteHeader: React.FC<{
                   stroke="currentColor"
                   strokeWidth="4"
                   fill="none"
-                  strokeDasharray={`${progress}, 100`}
+                  strokeDasharray={`${cleanProgress}, 100`}
                   d="M18 2a16 16 0 1 1 0 32 16 16 0 0 1 0-32"
                 />
               </svg>
-              <span className="absolute inset-0 grid place-items-center text-sm font-semibold text-white">{progress}%</span>
+              <span className="absolute inset-0 grid place-items-center text-sm font-semibold text-white">{cleanProgress}%</span>
             </div>
             <div>
               <p className="text-xs text-slate-400">Al siguiente nivel</p>
-              <p className="text-sm font-semibold text-white">{progress}% completado</p>
+              <p className="text-sm font-semibold text-white">{cleanProgress}% completado</p>
             </div>
           </div>
         </div>

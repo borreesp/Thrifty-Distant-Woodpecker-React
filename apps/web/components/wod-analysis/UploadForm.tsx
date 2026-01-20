@@ -6,12 +6,30 @@ import type { EditableWodBlock } from "../wod/wod-types";
 type Props = {
   onParsed: (payload: { imageUrl: string; blocks: EditableWodBlock[] }) => void;
   onProcessingChange?: (loading: boolean) => void;
+  onUseReferenceWod?: () => Promise<{ imageUrl?: string | null; blocks: EditableWodBlock[] } | void>;
+  useReferenceDisabled?: boolean;
+  referenceMessage?: string | null;
+  useReferenceLabel?: string;
 };
 
-export const UploadForm: React.FC<Props> = ({ onParsed, onProcessingChange }) => {
+export const UploadForm: React.FC<Props> = ({
+  onParsed,
+  onProcessingChange,
+  onUseReferenceWod,
+  useReferenceDisabled,
+  referenceMessage,
+  useReferenceLabel
+}) => {
   return (
     <div className="space-y-4">
-      <WodImageUploader onParsed={onParsed} onProcessingChange={onProcessingChange} />
+      <WodImageUploader
+        onParsed={onParsed}
+        onProcessingChange={onProcessingChange}
+        onUseReferenceWod={onUseReferenceWod}
+        useReferenceDisabled={useReferenceDisabled}
+        referenceMessage={referenceMessage}
+        useReferenceLabel={useReferenceLabel}
+      />
     </div>
   );
 };

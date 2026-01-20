@@ -32,17 +32,25 @@ export default function WorkoutsPage() {
       });
   }, []);
 
-  const domains = useMemo(
-    () => Array.from(new Set(workouts.map((w) => w.domain).filter(Boolean))) as string[],
-    [workouts]
-  );
-  const intensities = useMemo(
-    () => Array.from(new Set(workouts.map((w) => w.intensity).filter(Boolean))) as string[],
-    [workouts]
-  );
+  const uniqueStrings = (items: (string | null | undefined)[]) => {
+    const seen = new Set<string>();
+    return items
+      .filter(Boolean)
+      .map((s) => s as string)
+      .reduce<string[]>((acc, val) => {
+        const key = val.toLowerCase();
+        if (seen.has(key)) return acc;
+        seen.add(key);
+        acc.push(val);
+        return acc;
+      }, [])
+      .sort((a, b) => a.localeCompare(b));
+  };
+
+  const domains = useMemo(() => uniqueStrings(workouts.map((w) => w.domain)), [workouts]);
+  const intensities = useMemo(() => uniqueStrings(workouts.map((w) => w.intensity)), [workouts]);
   const hyroxStations = useMemo(
-    () =>
-      Array.from(new Set(workouts.flatMap((w) => w.hyrox_stations?.map((h) => h.station) ?? []).filter(Boolean))) as string[],
+    () => uniqueStrings(workouts.flatMap((w) => w.hyrox_stations?.map((h) => h.station) ?? [])),
     [workouts]
   );
 
@@ -60,13 +68,14 @@ export default function WorkoutsPage() {
   }, [workouts, filters, search]);
 
   const renderTags = (workout: Workout) => {
-    const tags = [workout.domain, workout.intensity, workout.hyrox_transfer, ...(workout.muscles ?? [])]
-      .filter(Boolean)
-      .slice(0, 4);
+    const tags = uniqueStrings([workout.domain, workout.intensity, workout.hyrox_transfer, ...(workout.muscles ?? [])]).slice(
+      0,
+      4
+    );
     return (
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-        {tags.map((tag) => (
-          <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+        {tags.map((tag, idx) => (
+          <span key={`${tag.toLowerCase()}-${idx}`} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
             {tag}
           </span>
         ))}
@@ -91,7 +100,7 @@ export default function WorkoutsPage() {
           >
             <option value="">Dominio</option>
             {domains.map((domain) => (
-              <option key={domain} value={domain}>
+              <option key={domain.toLowerCase()} value={domain}>
                 {domain}
               </option>
             ))}
@@ -103,7 +112,7 @@ export default function WorkoutsPage() {
           >
             <option value="">Intensidad</option>
             {intensities.map((item) => (
-              <option key={item} value={item}>
+              <option key={item.toLowerCase()} value={item}>
                 {item}
               </option>
             ))}
@@ -115,7 +124,7 @@ export default function WorkoutsPage() {
           >
             <option value="">Estacion HYROX</option>
             {hyroxStations.map((station) => (
-              <option key={station} value={station}>
+              <option key={station.toLowerCase()} value={station}>
                 {station}
               </option>
             ))}

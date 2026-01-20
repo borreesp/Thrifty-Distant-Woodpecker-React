@@ -14,7 +14,11 @@ type PRItem = {
   date: string;
 };
 
-export const MetricsPRs: React.FC<{ metrics: MetricItem[]; prs: PRItem[] }> = ({ metrics, prs }) => {
+export const MetricsPRs: React.FC<{ metrics: MetricItem[]; prs: PRItem[]; onViewMorePrs?: () => void }> = ({
+  metrics,
+  prs,
+  onViewMorePrs
+}) => {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <motion.div
@@ -42,7 +46,14 @@ export const MetricsPRs: React.FC<{ metrics: MetricItem[]; prs: PRItem[] }> = ({
         transition={{ duration: 0.4, delay: 0.05 }}
         className="lg:col-span-2 rounded-2xl bg-slate-900/70 p-4 ring-1 ring-white/5"
       >
-        <p className="text-sm text-slate-300">PRs y tests</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-300">PRs y tests</p>
+          {onViewMorePrs && (
+            <button className="text-xs text-cyan-200 hover:text-cyan-100" type="button" onClick={onViewMorePrs}>
+              Ver más
+            </button>
+          )}
+        </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {prs.map((pr) => (
             <div key={pr.name} className="rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-200">

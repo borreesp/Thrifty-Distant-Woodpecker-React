@@ -8,7 +8,14 @@ type RadarProps = {
 };
 
 export const AthleteRadarChart: React.FC<RadarProps> = ({ data }) => {
-  const normalized = data.slice(0, 6);
+  const axisOrder = ["Fuerza", "Resistencia", "Metcon", "Gimnásticos", "Velocidad", "Carga muscular"];
+  const byLabel = Object.fromEntries(
+    data.map((d) => [d.label.toLowerCase().trim(), Math.max(0, Math.min(100, Math.round(d.value ?? 0)))])
+  );
+  const normalized = axisOrder.map((label) => ({
+    label,
+    value: byLabel[label.toLowerCase()] ?? 0
+  }));
   const center = { x: 120, y: 120 };
   const radius = 100;
 
@@ -44,10 +51,14 @@ export const AthleteRadarChart: React.FC<RadarProps> = ({ data }) => {
               })
               .join(" ")}
             fill="none"
-            stroke="rgba(255,255,255,0.1)"
+            stroke="rgba(255,255,255,0.12)"
             strokeWidth="1"
           />
         ))}
+        {normalized.map((_, idx) => {
+          const pt = toPoint(100, idx);
+          return <line key={`axis-${idx}`} x1={center.x} y1={center.y} x2={pt.x} y2={pt.y} stroke="rgba(255,255,255,0.1)" />;
+        })}
         <polygon
           points={polygon}
           fill="url(#radarFillDetail)"
@@ -59,13 +70,6 @@ export const AthleteRadarChart: React.FC<RadarProps> = ({ data }) => {
           const pt = toPoint(p.value, idx);
           return (
             <g key={p.label}>
-              <line
-                x1={center.x}
-                y1={center.y}
-                x2={pt.x}
-                y2={pt.y}
-                stroke="rgba(255,255,255,0.12)"
-              />
               <circle cx={pt.x} cy={pt.y} r="4" fill="#22c55e" />
               <text
                 x={pt.x}

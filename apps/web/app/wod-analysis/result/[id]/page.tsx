@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { WorkoutDetailLayout } from "../../../../components/workout/WorkoutDetailLayout";
 import { api } from "../../../../lib/api";
 import type {
@@ -19,6 +19,7 @@ type LoadState<T> = { data: T | null; loading: boolean; error?: string | null };
 export default function WodAnalysisResultPage() {
   const params = useParams<{ id: string }>();
   const workoutId = params?.id;
+  const router = useRouter();
 
   const [workoutState, setWorkoutState] = useState<LoadState<Workout>>({ data: null, loading: true });
   const [analysisState, setAnalysisState] = useState<LoadState<WorkoutAnalysis>>({ data: null, loading: true });
@@ -26,11 +27,6 @@ export default function WodAnalysisResultPage() {
   const [similarState, setSimilarState] = useState<LoadState<Workout[]>>({ data: null, loading: true });
   const [athleteProfile, setAthleteProfile] = useState<AthleteProfileResponse | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [applyState, setApplyState] = useState<{ applying: boolean; applied: boolean; error: string | null }>({
-    applying: false,
-    applied: false,
-    error: null
-  });
 
   useEffect(() => {
     if (!workoutId) return;
@@ -53,10 +49,6 @@ export default function WodAnalysisResultPage() {
         setEquipment(equipmentPayload ?? []);
         setAthleteProfile(athletePayload);
         setUser(mePayload?.user ?? null);
-        setApplyState((prev) => ({
-          ...prev,
-          applied: Boolean(analysisPayload?.applied)
-        }));
       })
       .catch((err) => {
         const message = err instanceof Error ? err.message : "Error";
@@ -68,13 +60,6 @@ export default function WodAnalysisResultPage() {
 
   const workout = workoutState.data;
   const analysis = analysisState.data;
-
-  useEffect(() => {
-    setApplyState((prev) => ({
-      ...prev,
-      applied: Boolean(analysis?.applied)
-    }));
-  }, [analysis?.applied]);
 
   useEffect(() => {
     if (!workout) return;
@@ -99,41 +84,14 @@ export default function WodAnalysisResultPage() {
 
   const similarWorkouts = useMemo(() => similarState.data ?? [], [similarState.data]);
 
-  const handleApplyImpact = async () => {
-    if (!workoutId || !workout) {
-      console.warn("[applyImpact] Falta workoutId o workout cargado");
-      setApplyState((prev) => ({ ...prev, error: "No hay WOD cargado." }));
-      return;
-    }
-    if (!analysis) {
-      console.warn("[applyImpact] No hay analisis disponible para aplicar impacto");
-    }
-    if (analysis && !(analysis as any).athlete_impact) {
-      console.warn("[applyImpact] Analisis sin athlete_impact; el backend deberia calcularlo antes de aplicar.", analysis);
-    }
-    setApplyState((prev) => ({ ...prev, applying: true, error: null }));
-    try {
-      const response = await api.applyWorkoutImpact(workoutId, analysis?.id ? { analysis_id: analysis.id } : {});
-      setApplyState({ applying: false, applied: Boolean(response.applied), error: null });
-      if (!response.impact) {
-        console.warn("[applyImpact] Impacto vacio en la respuesta", response);
-      }
-      if (response.updated_profile) {
-        setAthleteProfile(response.updated_profile);
-      }
-      if (response.analysis) {
-        setAnalysisState({ data: response.analysis, loading: false });
-      } else if (analysis) {
-        setAnalysisState((prev) => ({
-          ...prev,
-          data: { ...analysis, applied: response.applied ?? true, applied_at: response.applied_at }
-        }));
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "No se pudo aplicar el entrenamiento.";
-      console.error("[applyImpact] Error aplicando impacto", err);
-      setApplyState((prev) => ({ ...prev, applying: false, error: message }));
-    }
+  const timeRoute = useMemo(() => {
+    const candidate = workout?.id ?? analysis?.workout_id ?? workoutId;
+    return candidate ? `/workouts/${candidate}/time` : null;
+  }, [analysis?.workout_id, workout?.id, workoutId]);
+
+  const handleGoToTime = () => {
+    if (!timeRoute) return;
+    router.push(timeRoute);
   };
 
   if (workoutState.loading) return <p className="text-sm text-slate-400">Cargando analisis...</p>;
@@ -148,10 +106,8 @@ export default function WodAnalysisResultPage() {
       athleteProfile={athleteProfile}
       user={user}
       similarWorkouts={similarWorkouts}
-      impactApplied={applyState.applied || Boolean(analysis?.applied)}
-      onApplyImpact={handleApplyImpact}
-      applyingImpact={applyState.applying}
-      applyError={applyState.error}
+      applyHref={timeRoute ?? undefined}
+      onApplyTraining={handleGoToTime}
     />
   );
 }

@@ -4,30 +4,16 @@ import { Button, Card } from "@thrifty/ui";
 import { motion } from "framer-motion";
 import type { EditableWodBlock } from "./wod-types";
 
+type ProcessingSource = "upload" | "reference" | null;
+
 type Props = {
   onParsed: (payload: { imageUrl: string; blocks: EditableWodBlock[] }) => void;
   onProcessingChange?: (loading: boolean) => void;
+  onUseReferenceWod?: () => Promise<{ imageUrl?: string | null; blocks: EditableWodBlock[] } | void>;
+  useReferenceLabel?: string;
+  useReferenceDisabled?: boolean;
+  referenceMessage?: string | null;
 };
-
-const demoSvg =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg width="640" height="360" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-          <stop stop-color="#22d3ee" offset="0"/>
-          <stop stop-color="#a855f7" offset="0.7"/>
-          <stop stop-color="#0ea5e9" offset="1"/>
-        </linearGradient>
-      </defs>
-      <rect width="640" height="360" rx="28" fill="url(#g)"/>
-      <text x="50" y="90" font-family="Inter, sans-serif" font-size="32" fill="#0f172a" font-weight="700">WOD detectado</text>
-      <text x="50" y="145" font-family="Inter, sans-serif" font-size="22" fill="#0f172a">• Run 800m + 20 KB Lunges 24/16kg</text>
-      <text x="50" y="185" font-family="Inter, sans-serif" font-size="22" fill="#0f172a">• 30 Wall Balls 9/6kg</text>
-      <text x="50" y="225" font-family="Inter, sans-serif" font-size="22" fill="#0f172a">• 15 Burpee Box Jump Over</text>
-      <text x="50" y="265" font-family="Inter, sans-serif" font-size="22" fill="#0f172a">• 600m run + 20 Toes to Bar</text>
-    </svg>`
-  );
 
 const seedBlocks: EditableWodBlock[] = [
   { id: "b1", exercise: "Run", volume: "800 m", load: "BW", time: "3:15" },
@@ -43,10 +29,18 @@ const buildBlocks = () =>
     id: `${b.id}-${Date.now()}-${idx}`
   }));
 
-export const WodImageUploader: React.FC<Props> = ({ onParsed, onProcessingChange }) => {
+export const WodImageUploader: React.FC<Props> = ({
+  onParsed,
+  onProcessingChange,
+  onUseReferenceWod,
+  useReferenceLabel = "Usar WOD seleccionado",
+  useReferenceDisabled,
+  referenceMessage
+}) => {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingSource, setProcessingSource] = useState<ProcessingSource>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
   const borderClass = useMemo(
@@ -57,13 +51,14 @@ export const WodImageUploader: React.FC<Props> = ({ onParsed, onProcessingChange
     [isDragging]
   );
 
-  const triggerProcessing = (state: boolean) => {
+  const triggerProcessing = (state: boolean, source?: ProcessingSource) => {
     setIsProcessing(state);
+    setProcessingSource(state ? source ?? null : null);
     onProcessingChange?.(state);
   };
 
   const simulateOcr = (imageUrl: string) => {
-    triggerProcessing(true);
+    triggerProcessing(true, "upload");
     setTimeout(() => {
       onParsed({ imageUrl, blocks: buildBlocks() });
       triggerProcessing(false);
@@ -86,9 +81,23 @@ export const WodImageUploader: React.FC<Props> = ({ onParsed, onProcessingChange
     }
   };
 
-  const handleDemo = () => {
-    setPreview(demoSvg);
-    simulateOcr(demoSvg);
+  const handleUseReference = async () => {
+    if (!onUseReferenceWod || useReferenceDisabled) return;
+    triggerProcessing(true, "reference");
+    try {
+      const result = await onUseReferenceWod();
+      if (result) {
+        const nextPreview = result.imageUrl ?? null;
+        setPreview(nextPreview);
+        if (result.blocks?.length) {
+          onParsed({ imageUrl: nextPreview ?? "", blocks: result.blocks });
+        }
+      }
+    } catch (err) {
+      console.error("[WodImageUploader] Error al cargar WOD de referencia", err);
+    } finally {
+      triggerProcessing(false);
+    }
   };
 
   return (
@@ -119,13 +128,23 @@ export const WodImageUploader: React.FC<Props> = ({ onParsed, onProcessingChange
             />
             <p className="text-sm font-semibold text-white">Arrastra tu imagen o selecciónala</p>
             <p className="mt-1 text-xs text-slate-400">JPG / PNG · max 10MB · OCR simulado</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              <Button variant="primary" size="sm" onClick={() => fileRef.current?.click()} disabled={isProcessing}>
-                {isProcessing ? "Procesando..." : "Subir imagen"}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleDemo} disabled={isProcessing}>
-                Usar demo
-              </Button>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button variant="primary" size="sm" onClick={() => fileRef.current?.click()} disabled={isProcessing}>
+                  {isProcessing && processingSource === "upload" ? "Procesando..." : "Subir imagen"}
+                </Button>
+                {onUseReferenceWod && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUseReference}
+                    disabled={isProcessing || useReferenceDisabled}
+                  >
+                    {isProcessing && processingSource === "reference" ? "Cargando..." : useReferenceLabel}
+                  </Button>
+                )}
+              </div>
+              {referenceMessage && <p className="text-xs text-slate-400">{referenceMessage}</p>}
             </div>
           </motion.div>
           <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-3">

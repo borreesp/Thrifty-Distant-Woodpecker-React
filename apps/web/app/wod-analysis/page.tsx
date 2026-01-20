@@ -9,17 +9,95 @@ import { BlocksEditor } from "../../components/wod-analysis/BlocksEditor";
 import { AnalyzingOverlay, type Step } from "../../components/wod-analysis/AnalyzingOverlay";
 import { api } from "../../lib/api";
 import type { EditableWodBlock } from "../../components/wod/wod-types";
-import type { Workout } from "../../lib/types";
+import type { Workout, WorkoutBlock, WorkoutBlockMovement } from "../../lib/types";
 
 const shellClass =
   "rounded-3xl border border-white/5 bg-gradient-to-br from-slate-950/80 via-slate-950/60 to-slate-900/70 p-6 md:p-8 shadow-[0_14px_50px_rgba(0,0,0,0.55)]";
+
+const formatSeconds = (value?: number | null) => {
+  if (value === undefined || value === null) return "";
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.round(value % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const buildVolumeLabel = (block: WorkoutBlock, movement?: WorkoutBlockMovement | null) => {
+  const parts: string[] = [];
+  if (block.rounds) parts.push(`${block.rounds}r`);
+  if (movement?.reps) parts.push(`${movement.reps} reps`);
+  if (movement?.distance_meters) parts.push(`${movement.distance_meters} m`);
+  if (movement?.calories) parts.push(`${movement.calories} cal`);
+  if (movement?.duration_seconds) parts.push(`${movement.duration_seconds} s`);
+  else if (block.duration_seconds) parts.push(`${block.duration_seconds} s`);
+  return parts.join(" | ") || block.description || "Volumen por definir";
+};
+
+const buildLoadLabel = (movement?: WorkoutBlockMovement | null) => {
+  if (!movement) return "BW";
+  if (movement.load) return `${movement.load}${movement.load_unit ?? ""}`.trim();
+  if (movement.load_unit) return movement.load_unit;
+  return "BW";
+};
+
+const adaptWorkoutToEditableBlocks = (workout: Workout): EditableWodBlock[] => {
+  const mapped: EditableWodBlock[] = [];
+  (workout.blocks ?? []).forEach((block, blockIdx) => {
+    if (block.movements?.length) {
+      block.movements.forEach((mv, mvIdx) => {
+        mapped.push({
+          id: `ref-${block.id ?? blockIdx}-${mv.id ?? mvIdx}`,
+          exercise: mv.movement?.name || block.title || `Ejercicio ${blockIdx + 1}-${mvIdx + 1}`,
+          volume: buildVolumeLabel(block, mv),
+          load: buildLoadLabel(mv),
+          time: formatSeconds(mv.duration_seconds ?? block.duration_seconds),
+          note: block.notes || block.description || undefined
+        });
+      });
+    } else {
+      mapped.push({
+        id: `ref-${block.id ?? blockIdx}`,
+        exercise: block.title || `Bloque ${blockIdx + 1}`,
+        volume: block.description || "Sin detalle",
+        load: "BW",
+        time: formatSeconds(block.duration_seconds),
+        note: block.notes || undefined
+      });
+    }
+  });
+  return mapped;
+};
+
+const buildReferencePreview = (workout: Workout) => {
+  const title = workout.title || "WOD seleccionado";
+  const description = (workout.description || "").slice(0, 120);
+  return (
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      `<svg width="640" height="360" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+            <stop stop-color="#22d3ee" offset="0"/>
+            <stop stop-color="#a855f7" offset="0.7"/>
+            <stop stop-color="#0ea5e9" offset="1"/>
+          </linearGradient>
+        </defs>
+        <rect width="640" height="360" rx="28" fill="url(#g)"/>
+        <text x="36" y="96" font-family="Inter, sans-serif" font-size="30" fill="#0f172a" font-weight="700">${title}</text>
+        <text x="36" y="140" font-family="Inter, sans-serif" font-size="16" fill="#0f172a" font-weight="500">${description}</text>
+      </svg>`
+    )
+  );
+};
 
 export default function WodAnalysisUploadPage() {
   const router = useRouter();
   const [draftBlocks, setDraftBlocks] = useState<EditableWodBlock[]>([]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string>("");
+  const [selectedReferenceWodId, setSelectedReferenceWodId] = useState<string>("");
+  const [referenceMessage, setReferenceMessage] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -29,9 +107,17 @@ export default function WodAnalysisUploadPage() {
       .getWorkouts()
       .then((list) => {
         setWorkouts(list);
-        if (list.length) setSelectedWorkoutId(list[0].id.toString());
+        if (list.length) {
+          setSelectedReferenceWodId(list[0].id.toString());
+          setReferenceMessage(null);
+        } else {
+          setReferenceMessage("No hay WODs disponibles para usar como referencia.");
+        }
       })
-      .catch(() => setWorkouts([]));
+      .catch(() => {
+        setWorkouts([]);
+        setReferenceMessage("No se pudieron cargar los WODs de referencia.");
+      });
   }, []);
 
   useEffect(() => {
@@ -44,6 +130,7 @@ export default function WodAnalysisUploadPage() {
   }, [isAnalyzing]);
 
   const handleParsed = (payload: { imageUrl: string; blocks: EditableWodBlock[] }) => {
+    setReferenceMessage(null);
     setImageUrl(payload.imageUrl);
     setDraftBlocks(payload.blocks);
   };
@@ -59,6 +146,27 @@ export default function WodAnalysisUploadPage() {
 
   const parseSteps: Step[] = [{ label: "Extrayendo bloques del entrenamiento…", status: "active" }];
 
+  const handleUseReferenceWod = async () => {
+    if (!selectedReferenceWodId) {
+      setReferenceMessage("Selecciona un WOD de referencia.");
+      return;
+    }
+    setReferenceMessage(null);
+    try {
+      const workout = await api.getWorkoutStructure(selectedReferenceWodId);
+      const blocks = adaptWorkoutToEditableBlocks(workout);
+      if (!blocks.length) {
+        setReferenceMessage("El WOD seleccionado no tiene bloques estructurados.");
+        return;
+      }
+      return { imageUrl: buildReferencePreview(workout), blocks };
+    } catch (err) {
+      console.error(err);
+      setReferenceMessage("No se pudo cargar el WOD seleccionado.");
+      return;
+    }
+  };
+
   const handleAnalyze = async (formData: {
     title: string;
     date: string;
@@ -68,8 +176,12 @@ export default function WodAnalysisUploadPage() {
     tags: string[];
     blocks: EditableWodBlock[];
   }) => {
-    const targetId = selectedWorkoutId || workouts[0]?.id?.toString();
-    if (!targetId) return;
+    if (!selectedReferenceWodId) {
+      setReferenceMessage("Selecciona un WOD de referencia antes de analizar.");
+      return;
+    }
+    setReferenceMessage(null);
+    const targetId = selectedReferenceWodId;
     setIsAnalyzing(true);
     try {
       const analysis = await api.getWorkoutAnalysis(targetId);
@@ -99,6 +211,10 @@ export default function WodAnalysisUploadPage() {
         <UploadForm
           onParsed={handleParsed}
           onProcessingChange={(loading) => setIsParsing(loading)}
+          onUseReferenceWod={handleUseReferenceWod}
+          useReferenceDisabled={!selectedReferenceWodId}
+          referenceMessage={referenceMessage}
+          useReferenceLabel="Usar WOD seleccionado"
         />
 
         <Card className="bg-slate-900/70 ring-1 ring-white/10">
@@ -110,8 +226,11 @@ export default function WodAnalysisUploadPage() {
             <div className="flex flex-col gap-2 md:w-72">
               <label className="text-xs text-slate-400">WOD base</label>
               <select
-                value={selectedWorkoutId}
-                onChange={(e) => setSelectedWorkoutId(e.target.value)}
+                value={selectedReferenceWodId}
+                onChange={(e) => {
+                  setSelectedReferenceWodId(e.target.value);
+                  setReferenceMessage(null);
+                }}
                 className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white"
               >
                 {workouts.map((w) => (
@@ -155,3 +274,4 @@ export default function WodAnalysisUploadPage() {
     </div>
   );
 }
+
