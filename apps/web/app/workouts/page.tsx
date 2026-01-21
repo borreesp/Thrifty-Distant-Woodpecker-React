@@ -158,9 +158,10 @@ export default function WorkoutsPage() {
                   <h3 className="text-xl font-semibold text-white">{workout.title}</h3>
                   <p className="mt-1 text-sm text-slate-300">{workout.description}</p>
                 </div>
-                <div className="text-right text-sm text-slate-400">
-                  <p>{workout.avg_difficulty ? workout.avg_difficulty.toFixed(1) : "-"} KP</p>
-                  <p>{workout.avg_rating ? workout.avg_rating.toFixed(1) : "-"}?</p>
+                <div className="text-right text-sm text-slate-400 space-y-1">
+                  <p>XP: {workout.xp_estimate ?? "—"}</p>
+                  <p>{workout.avg_difficulty ? `${workout.avg_difficulty.toFixed(1)} KP` : "KP: —"}</p>
+                  <p>{workout.avg_rating ? `${workout.avg_rating.toFixed(1)} *` : "Rating: —"}</p>
                 </div>
               </div>
               {renderTags(workout)}

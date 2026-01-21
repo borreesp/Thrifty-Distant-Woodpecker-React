@@ -43,8 +43,7 @@ const labels: Record<string, string> = {
   load_ratio: "Load ratio",
   tecnica: "Técnica",
   movilidad: "Movilidad",
-  mentalidad: "Mentalidad",
-  metcon: "Metcon"
+  mentalidad: "Mentalidad"
 };
 
 const alias: Record<string, string> = {
