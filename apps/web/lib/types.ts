@@ -80,6 +80,7 @@ export type Workout = {
   avg_rating?: number | null;
   avg_difficulty?: number | null;
   rating_count?: number | null;
+  xp_estimate?: number | null;
   official_tag?: string | null;
    capacities?: { capacity: string; value: number; note: string }[];
    level_times?: { athlete_level: string; time_minutes: number; time_range: string }[];
