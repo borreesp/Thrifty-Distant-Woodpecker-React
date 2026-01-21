@@ -86,8 +86,7 @@ const alias: Record<string, string> = {
   tecnica_basal: "tecnica",
   movilidad: "movilidad",
   mentalidad: "mentalidad",
-  mindset: "mentalidad",
-  metcon: "metcon"
+  mindset: "mentalidad"
 };
 
 const normalizeKey = (raw: string) => {
