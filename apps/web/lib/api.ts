@@ -216,11 +216,12 @@ export const api = {
   async submitWorkoutTime(
     workoutId: string | number,
     payload: {
-      method: "total" | "by_blocks";
+      method: "total" | "by_blocks" | "by_segments";
       total_time_sec: number;
       block_times_sec?: number[];
       segment_times_sec?: Record<string, number>;
       segment_mode?: string;
+      segment_details?: { movement_id?: number; label: string; time_seconds?: number | null }[];
       difficulty?: number;
       rating?: number;
       comment?: string;

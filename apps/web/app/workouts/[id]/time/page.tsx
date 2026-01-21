@@ -6,7 +6,7 @@ import { Button, Card, Section } from "@thrifty/ui";
 import { api } from "../../../../lib/api";
 import type { Workout, WorkoutBlock } from "../../../../lib/types";
 
-type Mode = "total" | "by_blocks";
+type Mode = "total" | "by_blocks" | "by_segments";
 type SegmentKind = "BLOCK" | "ROUND" | "SCENARIO" | "INTERVAL";
 
 type Segment = {
@@ -27,6 +27,21 @@ type SegmentPlan = {
   label: string;
   note?: string;
   usedAdvanced: boolean;
+};
+
+type SurveyState = {
+  feel: string | null;
+  motivation: string | null;
+  energy: string | null;
+  recovery: string | null;
+  notes: string;
+};
+
+type MovementSegment = {
+  key: string;
+  label: string;
+  description: string;
+  movementId?: number;
 };
 
 const formatSeconds = (total?: number | null) => {
@@ -54,6 +69,74 @@ const parseTimeInput = (value: string): number | null => {
 };
 
 const toArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+
+const summarizeBlock = (block: WorkoutBlock) => {
+  const title = block.title || block.block_type || "Bloque";
+  const parts: string[] = [];
+  (block.movements ?? []).forEach((mv) => {
+    const name = mv.movement?.name ?? "";
+    if (!name) return;
+    const detail =
+      mv.reps && mv.reps > 0
+        ? `${mv.reps} reps`
+        : mv.distance_meters
+          ? `${mv.distance_meters}m`
+          : mv.calories
+            ? `${mv.calories} cal`
+            : mv.duration_seconds
+              ? `${mv.duration_seconds}s`
+              : "";
+    parts.push(detail ? `${name} (${detail})` : name);
+  });
+  const summary = parts.length ? ` - ${parts.slice(0, 3).join(" + ")}` : "";
+  return `${title}${summary}`;
+};
+
+
+const isWarmupLike = (block: WorkoutBlock) => {
+  const type = (block.block_type || "").toUpperCase();
+  const title = (block.title || "").toUpperCase();
+  const desc = (block.description || "").toUpperCase();
+  const warmWords = ["WARM", "SKILL", "INTRO", "COOLDOWN"];
+  return warmWords.some((w) => type.includes(w) || title.includes(w) || desc.includes(w));
+};
+
+const buildMovementSegments = (blocks: WorkoutBlock[]): MovementSegment[] => {
+  const ordered = [...blocks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const mainBlocks = ordered.filter((b) => !isWarmupLike(b));
+  const segmentsMap = new Map<number | string, MovementSegment>();
+  mainBlocks.forEach((block) => {
+    const rounds = block.rounds && block.rounds > 1 ? block.rounds : 1;
+    (block.movements ?? []).forEach((mv) => {
+      const id = mv.movement?.id ?? mv.movement_id ?? mv.id ?? `${block.id}-${mv.position}`;
+      const existing = segmentsMap.get(id);
+      const quantity =
+        mv.reps && mv.reps > 0
+          ? `${rounds} x ${mv.reps} = ${mv.reps * rounds} reps`
+          : mv.distance_meters
+            ? `${rounds} x ${mv.distance_meters}m = ${mv.distance_meters * rounds}m`
+            : mv.calories
+              ? `${rounds} x ${mv.calories} cal = ${mv.calories * rounds} cal`
+              : mv.duration_seconds
+                ? `${rounds} x ${mv.duration_seconds}s = ${mv.duration_seconds * rounds}s`
+                : "";
+      const label = mv.movement?.name || mv.movement_id?.toString() || "Movimiento";
+      if (!existing) {
+        segmentsMap.set(id, {
+          key: `mv:${id}`,
+          label: `${label} (total)`,
+          description: quantity,
+          movementId: mv.movement?.id ?? mv.movement_id ?? undefined
+        });
+      } else {
+        // aggregate description if needed
+        const descParts = [existing.description, quantity].filter(Boolean);
+        segmentsMap.set(id, { ...existing, description: descParts.join(" | ") });
+      }
+    });
+  });
+  return Array.from(segmentsMap.values());
+};
 
 const buildSegmentPlan = (workout: Workout, orderedBlocks: WorkoutBlock[]): SegmentPlan => {
   const extra = (workout.extra_attributes_json || {}) as Record<string, any>;
@@ -203,7 +286,7 @@ const buildSegmentPlan = (workout: Workout, orderedBlocks: WorkoutBlock[]): Segm
 
     segments.push({
       id: `block:${blockId}`,
-      label: `${blockTitle}`,
+      label: summarizeBlock(block),
       kind: "BLOCK",
       expectedType: "work",
       required,
@@ -219,7 +302,10 @@ const buildSegmentPlan = (workout: Workout, orderedBlocks: WorkoutBlock[]): Segm
       ? "Tiempo por rondas"
       : "Tiempo por bloques";
 
-  const note = usedAdvanced ? undefined : "Este WOD no tiene estructura detallada; se registrara por bloques estandar.";
+  const note =
+    segments.length === 0
+      ? "Este WOD no tiene estructura detallada; se registrara por bloques estandar."
+      : undefined;
 
   return { segments, label, note, usedAdvanced };
 };
@@ -246,6 +332,44 @@ const kindLabel = (segment: Segment) => {
   return "Bloque";
 };
 
+function SurveySegment({
+  label,
+  options,
+  value,
+  onChange
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string | null;
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[12px] text-slate-300">{label}</p>
+      <div className="mt-1 flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const active = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              aria-label={opt.label}
+              onClick={() => onChange(opt.value)}
+              className={`rounded-xl border px-3 py-2 text-sm transition ${
+                active
+                  ? "border-cyan-400/60 bg-cyan-400/10 text-white"
+                  : "border-white/10 bg-slate-900/50 text-slate-200 hover:border-cyan-300/40"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function WorkoutTimePage() {
   const params = useParams<{ id: string }>();
   const workoutId = params?.id;
@@ -255,7 +379,9 @@ export default function WorkoutTimePage() {
   const [mode, setMode] = useState<Mode>("total");
   const [totalInput, setTotalInput] = useState("");
   const [segmentInputs, setSegmentInputs] = useState<Record<string, string>>({});
+  const [movementInputs, setMovementInputs] = useState<Record<string, string>>({});
   const [includeTotalOverride, setIncludeTotalOverride] = useState(false);
+  const [survey, setSurvey] = useState<SurveyState>({ feel: null, motivation: null, energy: null, recovery: null, notes: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -282,6 +408,7 @@ export default function WorkoutTimePage() {
     if (!workout?.blocks) return [];
     return [...workout.blocks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   }, [workout?.blocks]);
+  const movementSegments = useMemo(() => buildMovementSegments(blocks), [blocks]);
 
   const segmentPlan = useMemo<SegmentPlan>(() => {
     if (!workout) {
@@ -291,6 +418,7 @@ export default function WorkoutTimePage() {
   }, [workout, blocks]);
 
   const segmentKey = useMemo(() => segmentPlan.segments.map((seg) => seg.id).join("|"), [segmentPlan.segments]);
+  const movementKey = useMemo(() => movementSegments.map((seg) => seg.key).join("|"), [movementSegments]);
 
   useEffect(() => {
     if (!segmentPlan.segments.length) return;
@@ -301,6 +429,18 @@ export default function WorkoutTimePage() {
     setSegmentInputs(defaults);
     setIncludeTotalOverride(false);
   }, [workout?.id, segmentKey]);
+
+  useEffect(() => {
+    if (!movementSegments.length) {
+      setMovementInputs({});
+      return;
+    }
+    const defaults: Record<string, string> = {};
+    movementSegments.forEach((seg) => {
+      defaults[seg.key] = "";
+    });
+    setMovementInputs(defaults);
+  }, [workout?.id, movementKey, movementSegments]);
 
   const parsedSegmentTimes = useMemo(() => {
     const map: Record<string, number | null> = {};
@@ -318,6 +458,24 @@ export default function WorkoutTimePage() {
         return acc;
       }, 0),
     [parsedSegmentTimes, segmentPlan.segments]
+  );
+
+  const parsedMovementTimes = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    movementSegments.forEach((seg) => {
+      map[seg.key] = parseTimeInput(movementInputs[seg.key] ?? "");
+    });
+    return map;
+  }, [movementInputs, movementSegments]);
+
+  const movementTotal = useMemo(
+    () =>
+      movementSegments.reduce((acc, seg) => {
+        const val = parsedMovementTimes[seg.key];
+        if (Number.isFinite(val)) return acc + (val as number);
+        return acc;
+      }, 0),
+    [parsedMovementTimes, movementSegments]
   );
 
   const blockTimesFromSegments = useMemo(
@@ -341,21 +499,28 @@ export default function WorkoutTimePage() {
   }, [segmentPlan.segments]);
 
   const disableByBlocks = segmentPlan.segments.length === 0;
+  const disableBySegments = movementSegments.length === 0;
 
   const handleSegmentChange = (id: string, value: string) => {
     setSegmentInputs((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleMovementChange = (id: string, value: string) => {
+    setMovementInputs((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleSave = async () => {
     if (!workoutId) return;
     setError(null);
 
+    const effectiveMethod: "total" | "by_blocks" = mode === "by_segments" ? "by_blocks" : mode;
+
     const payloadBase = {
-      method: mode,
+      method: effectiveMethod,
       total_time_sec: 0,
       block_times_sec: undefined as number[] | undefined,
       segment_times_sec: undefined as Record<string, number> | undefined,
-      segment_mode: segmentPlan.label
+      segment_mode: mode === "by_segments" ? "Tiempo por segmentos" : segmentPlan.label
     };
 
     if (mode === "total") {
@@ -367,6 +532,7 @@ export default function WorkoutTimePage() {
       const payload = { ...payloadBase, total_time_sec: parsed };
       setSaving(true);
       try {
+        console.log("[time-submit][total]", { payload, postWorkoutSurvey: survey });
         await api.submitWorkoutTime(workoutId, payload);
         try {
           await api.applyWorkoutImpact(workoutId);
@@ -383,8 +549,79 @@ export default function WorkoutTimePage() {
       return;
     }
 
+    if (mode === "by_segments") {
+      if (disableBySegments) {
+        setError("No hay segmentos cronometrables en el bloque principal.");
+        return;
+      }
+
+      const segmentTimes: Record<string, number> = {};
+      movementSegments.forEach((seg) => {
+        const val = parsedMovementTimes[seg.key];
+        if (Number.isFinite(val) && (val as number) > 0) {
+          const key = seg.movementId ? `movement:${seg.movementId}` : seg.key;
+          segmentTimes[key] = val as number;
+        }
+      });
+
+      const missing = movementSegments.length - Object.keys(segmentTimes).length;
+      if (!Object.keys(segmentTimes).length) {
+        setError("Introduce al menos un tiempo de segmento.");
+        return;
+      }
+      if (missing > 0) {
+        setError(`Aviso: faltan ${missing} segmentos sin tiempo; guardamos los completados.`);
+      }
+
+      const totalOverride = includeTotalOverride ? parseTimeInput(totalInput) : null;
+      const totalFromSegments = Object.values(segmentTimes).reduce((acc, v) => acc + v, 0);
+      const totalSeconds = totalOverride && totalOverride > 0 ? totalOverride : totalFromSegments;
+      if (!totalSeconds || totalSeconds <= 0) {
+        setError("Calculamos un total invalido. Revisa los tiempos ingresados.");
+        return;
+      }
+
+      const segmentDetails = movementSegments
+        .filter((seg) => Number.isFinite(parsedMovementTimes[seg.key]) && (parsedMovementTimes[seg.key] as number) > 0)
+        .map((seg) => ({
+          movement_id: seg.movementId,
+          label: seg.label,
+          time_seconds: parsedMovementTimes[seg.key] as number
+        }));
+
+      const payload = {
+        ...payloadBase,
+        total_time_sec: totalSeconds,
+        segment_times_sec: segmentTimes,
+        segment_details: segmentDetails
+      };
+
+      setSaving(true);
+      try {
+        console.log("[time-submit][by_segments]", {
+          payload,
+          segments: movementSegments,
+          postWorkoutSurvey: survey
+        });
+        await api.submitWorkoutTime(workoutId, payload);
+        try {
+          await api.applyWorkoutImpact(workoutId);
+        } catch (impactErr) {
+          console.warn("[time] applyImpact fallo", impactErr);
+        }
+        router.push(`/workouts/${workoutId}?saved=time`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "No se pudo guardar el tiempo por segmentos.";
+        setError(message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // by_blocks
     if (disableByBlocks) {
-      setError("Este WOD no tiene estructura para registrar por segmentos.");
+      setError("Este WOD no tiene estructura para registrar por bloques.");
       return;
     }
 
@@ -428,6 +665,7 @@ export default function WorkoutTimePage() {
 
     setSaving(true);
     try {
+      console.log("[time-submit][by_blocks]", { payload, postWorkoutSurvey: survey });
       await api.submitWorkoutTime(workoutId, payload);
       try {
         await api.applyWorkoutImpact(workoutId);
@@ -469,6 +707,9 @@ export default function WorkoutTimePage() {
             className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white md:w-64"
           >
             <option value="total">Tiempo total</option>
+            <option value="by_segments" disabled={disableBySegments}>
+              Tiempo por segmentos
+            </option>
             <option value="by_blocks" disabled={disableByBlocks}>
               Tiempo por bloques
             </option>
@@ -488,6 +729,76 @@ export default function WorkoutTimePage() {
                 />
               </label>
               <p className="text-xs text-slate-400">Guardaremos este tiempo como referencia principal para el WOD.</p>
+            </div>
+          )}
+
+          {mode === "by_segments" && (
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Segmentos por ejercicio</p>
+                  <p className="text-sm text-slate-200">
+                    Ingresa tiempos por movimiento del bloque principal (sin warmup/skill). Deja vacios si no los tienes.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={includeTotalOverride}
+                    onChange={(e) => setIncludeTotalOverride(e.target.checked)}
+                    className="h-4 w-4 rounded border border-white/20 bg-slate-900/70"
+                  />
+                  <span>Agregar tiempo total manual (opcional)</span>
+                </label>
+              </div>
+
+              {includeTotalOverride && (
+                <label className="block text-xs text-slate-400">
+                  Tiempo total (segundos o mm:ss)
+                  <input
+                    value={totalInput}
+                    onChange={(e) => setTotalInput(e.target.value)}
+                    placeholder="1560 o 26:00"
+                    className="mt-1 w-full rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                  />
+                </label>
+              )}
+
+              {!movementSegments.length && (
+                <p className="text-sm text-amber-300">
+                  No encontramos movimientos cronometrables en el bloque principal del WOD.
+                </p>
+              )}
+
+              {!!movementSegments.length && (
+                <div className="space-y-2">
+                  {movementSegments.map((seg) => (
+                    <div
+                      key={seg.key}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{seg.label}</p>
+                        {seg.description ? (
+                          <p className="text-[12px] text-slate-400 truncate">{seg.description}</p>
+                        ) : (
+                          <p className="text-[12px] text-slate-500">Segmento cronometrable</p>
+                        )}
+                      </div>
+                      <input
+                        value={movementInputs[seg.key] ?? ""}
+                        onChange={(e) => handleMovementChange(seg.key, e.target.value)}
+                        placeholder="mm:ss"
+                        className="w-32 rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {movementTotal > 0 && (
+                <p className="text-xs text-slate-400">Tiempo total calculado: {formatSeconds(movementTotal)}</p>
+              )}
             </div>
           )}
 
@@ -570,9 +881,75 @@ export default function WorkoutTimePage() {
             </div>
           )}
 
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Encuesta rapida</p>
+                <p className="text-[12px] text-slate-300">Responde en segundos, no bloquea el guardado.</p>
+              </div>
+            </div>
+            <SurveySegment
+              label="Como te has sentido?"
+              value={survey.feel}
+              options={[
+                { value: "very_hard", label: "Muy duro" },
+                { value: "hard", label: "Duro" },
+                { value: "normal", label: "Normal" },
+                { value: "easy", label: "Facil" }
+              ]}
+              onChange={(val) => setSurvey((prev) => ({ ...prev, feel: val }))}
+            />
+            <SurveySegment
+              label="Motivacion"
+              value={survey.motivation}
+              options={[
+                { value: "low", label: "Baja" },
+                { value: "medium", label: "Media" },
+                { value: "high", label: "Alta" }
+              ]}
+              onChange={(val) => setSurvey((prev) => ({ ...prev, motivation: val }))}
+            />
+            <SurveySegment
+              label="Energia"
+              value={survey.energy}
+              options={[
+                { value: "low", label: "Baja" },
+                { value: "medium", label: "Media" },
+                { value: "high", label: "Alta" }
+              ]}
+              onChange={(val) => setSurvey((prev) => ({ ...prev, energy: val }))}
+            />
+            <SurveySegment
+              label="Recuperacion percibida"
+              value={survey.recovery}
+              options={[
+                { value: "bad", label: "Mal" },
+                { value: "ok", label: "Ok" },
+                { value: "great", label: "Muy bien" }
+              ]}
+              onChange={(val) => setSurvey((prev) => ({ ...prev, recovery: val }))}
+            />
+            <label className="block text-xs text-slate-300">
+              Notas (opcional)
+              <textarea
+                maxLength={200}
+                value={survey.notes}
+                onChange={(e) => setSurvey((prev) => ({ ...prev, notes: e.target.value }))}
+                className="mt-1 w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white"
+                placeholder="Breves notas o sensaciones..."
+              />
+            </label>
+          </div>
+
           {error && <p className="mt-3 text-xs text-rose-300">{error}</p>}
           <div className="mt-4 flex justify-end">
-            <Button variant="primary" onClick={handleSave} disabled={saving || (mode === "by_blocks" && disableByBlocks)}>
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={
+                saving || (mode === "by_blocks" && disableByBlocks) || (mode === "by_segments" && disableBySegments)
+              }
+            >
               {saving ? "Guardando..." : "Guardar resultado"}
             </Button>
           </div>
