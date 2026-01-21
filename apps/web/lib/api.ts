@@ -219,6 +219,8 @@ export const api = {
       method: "total" | "by_blocks";
       total_time_sec: number;
       block_times_sec?: number[];
+      segment_times_sec?: Record<string, number>;
+      segment_mode?: string;
       difficulty?: number;
       rating?: number;
       comment?: string;

@@ -19,16 +19,16 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/10 bg-surface/60 shadow-soft backdrop-blur-md",
-        "p-5 md:p-6 text-slate-100",
+        "rounded-[var(--radius-xl)] border border-[rgb(var(--border))] bg-[rgb(var(--surface),0.55)] shadow-[var(--shadow-sm)] backdrop-blur-md",
+        "p-5 md:p-6 text-[rgb(var(--text))] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]",
         className
       )}
     >
       {(title || subtitle || actions) && (
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="space-y-1">
-            {title && <h3 className="text-lg font-semibold">{title}</h3>}
-            {subtitle && <p className="text-sm text-slate-300">{subtitle}</p>}
+            {title && <h3 className="text-lg font-semibold text-[rgb(var(--text))]">{title}</h3>}
+            {subtitle && <p className="text-sm text-[rgb(var(--muted))]">{subtitle}</p>}
           </div>
           {actions}
         </div>

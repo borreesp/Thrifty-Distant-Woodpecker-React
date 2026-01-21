@@ -90,6 +90,10 @@ export const helpText: HelpRegistry = {
     title: "Dominio energético",
     body: "Qué sistema predomina en el WOD (metcon, fuerza, potencia, resistencia). Te ayuda a no repetir el mismo dominio varios días seguidos."
   },
+  "wodBuilder.xpEstimate": {
+    title: "XP estimada",
+    body: "Experiencia aproximada que ganarías al aplicar este WOD. Basada en la fatiga y tu nivel: más fatiga → más XP; niveles altos progresan un poco más lento."
+  },
   "wodBuilder.capacityFocus": {
     title: "Capacidades foco",
     body: "Capacidades más impactadas por este WOD. Rango 0–100. Sirve para ver si el bloque refuerza fuerza, resistencia, gimnásticos, etc."

@@ -153,6 +153,8 @@ export type WorkoutAnalysis = {
   pacing: { tip: string; range: string };
   expected_feel: string;
   session_load: string;
+  xp_estimate?: number | null;
+  xp_components?: Record<string, unknown>;
   id?: number;
   athlete_impact?: AthleteImpactDelta | null;
   applied?: boolean;

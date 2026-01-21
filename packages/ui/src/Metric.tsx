@@ -10,9 +10,9 @@ type MetricProps = {
 };
 
 const trendCopy: Record<NonNullable<MetricProps["trend"]>, string> = {
-  up: "text-emerald-400",
-  down: "text-rose-400",
-  neutral: "text-slate-300"
+  up: "text-[rgb(var(--success))]",
+  down: "text-[rgb(var(--danger))]",
+  neutral: "text-[rgb(var(--muted))]"
 };
 
 export const Metric: React.FC<MetricProps> = ({
@@ -25,13 +25,13 @@ export const Metric: React.FC<MetricProps> = ({
   return (
     <div
       className={cn(
-        "rounded-lg border border-white/10 bg-surface-alt/70 px-4 py-3",
+        "rounded-[var(--radius-lg)] border border-[rgb(var(--border))] bg-[rgb(var(--surface-2),0.7)] px-4 py-3 shadow-[var(--shadow-sm)]",
         className
       )}
     >
-      <p className="text-sm text-slate-400">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
       <div className="flex items-baseline gap-3">
-        <span className="text-2xl font-semibold text-white">{value}</span>
+        <span className="text-2xl font-semibold text-[rgb(var(--text))]">{value}</span>
         {hint && (
           <span className={cn("text-sm", trendCopy[trend])}>
             {hint}

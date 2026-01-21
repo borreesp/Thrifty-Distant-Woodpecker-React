@@ -28,6 +28,7 @@ import { expectedMetricKeys, recordMetrics } from "../../lib/metrics-debug";
 import { adaptAthleteProfile, adaptAthleteImpact } from "../../lib/metrics/adapters";
 import { api } from "../../lib/api";
 import type { AthleteProfileResponse, Movement, Workout, WorkoutCreatePayload } from "../../lib/types";
+import { computeXpEstimate } from "../../lib/xp";
 import { AthleteImpact } from "../wod-analysis/AthleteImpact";
 import {
   calculateWodImpact,
@@ -85,6 +86,7 @@ type DropZone =
 
 type AnalysisResult = {
   fatigue: number;
+  xpEstimate?: number;
   domain: string;
   intensity: string;
   hyroxTransfer: number;
@@ -453,6 +455,7 @@ const computeAnalysis = (blocks: WodBlock[], athleteProfile?: AthleteProfileResp
       ?.reduce((sum, mv) => sum + (mv.fatigue ?? 0), 0) ?? 0;
   const hyroxRatio = totalMvFatigue > 0 ? Math.min(100, Math.max(0, (hyroxFatigue / totalMvFatigue) * 100)) : 0;
   const hyroxTransfer = hyroxRatio > 0 ? Math.round(hyroxRatio) : hyroxDetail.transferScore;
+  const xpEstimate = computeXpEstimate(impactResult.fatigue_total ?? 0, athleteLevel).xp;
 
   const breakdown = impactResult.fatigue_by_block.map((block, idx) => ({
     ...block,
@@ -482,6 +485,7 @@ const computeAnalysis = (blocks: WodBlock[], athleteProfile?: AthleteProfileResp
 
   return {
     fatigue: Number(impactResult.fatigue_total.toFixed(1)),
+    xpEstimate,
     domain,
     intensity,
     hyroxTransfer,
@@ -1532,16 +1536,13 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
     .slice(0, 4);
   const hyroxExplanation = analysis.hyroxDetail?.explanation ?? [];
 
-  const impactTop = Object.entries(analysis.impact || {})
-    .filter(([, v]) => typeof v === "number")
-    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
-    .slice(0, 4);
-
   const muscleChips = Object.entries(analysis.muscleCounts || {})
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1]);
 
   const maxMuscleLoad = Math.max(...analysis.muscles.map((m) => m.value || 0), 1);
+
+  const statCard = "rounded-2xl border border-white/10 bg-white/5 p-3 text-white flex flex-col gap-1 min-w-[160px]";
 
   return (
     <div className={`${cardShell} p-4 space-y-4`}>
@@ -1556,31 +1557,38 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
         </div>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
-        <Card className="border border-white/10 bg-white/5 p-3 text-white">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-400">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className={statCard}>
+          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-slate-400">
             Fatiga estimada <HelpTooltip helpKey="wodBuilder.fatigueEstimated" />
           </p>
-          <p className="text-3xl font-semibold text-white">{analysis.fatigue}/10</p>
+          <p className="text-3xl font-semibold">{analysis.fatigue}/10</p>
           <p className="text-[11px] text-slate-400">Dificultad: {analysis.difficulty}/10</p>
-        </Card>
-        <Card className="border border-white/10 bg-white/5 p-3 text-white">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-400">
+        </div>
+        <div className={statCard}>
+          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-slate-400">
+            XP estimada <HelpTooltip helpKey="wodBuilder.xpEstimate" />
+          </p>
+          <p className="text-3xl font-semibold">{analysis.xpEstimate ?? "-"}</p>
+          <p className="text-[11px] text-slate-400">Basado en fatiga y nivel actual</p>
+        </div>
+        <div className={statCard}>
+          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-slate-400">
             Dominio energetico <HelpTooltip helpKey="wodBuilder.energyDomain" />
           </p>
-          <p className="text-xl font-semibold text-white">{analysis.domain}</p>
+          <p className="text-xl font-semibold">{analysis.domain}</p>
           <p className="text-[11px] text-slate-400">Transfer HYROX: {analysis.hyroxTransfer}/100</p>
-        </Card>
-        <Card className="border border-white/10 bg-white/5 p-3 text-white">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-400">
+        </div>
+        <div className={statCard}>
+          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-slate-400">
             Tiempo y pacing <HelpTooltip helpKey="wodBuilder.timePacing" />
           </p>
-          <p className="text-lg font-semibold text-white">{formatTotalTime(analysis.totalTime)}</p>
+          <p className="text-lg font-semibold">{formatTotalTime(analysis.totalTime)}</p>
           <p className="text-[11px] text-slate-400">{analysis.pacing}</p>
-        </Card>
+        </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Avisos y acumulacion muscular</p>
         <div className="flex flex-wrap gap-2">
           {analysis.warnings.length ? (
@@ -1592,8 +1600,10 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
                 {warning}
               </span>
             ))
-          ) : (
+          ) : muscleChips.length ? (
             <span className="text-xs text-slate-400">Sin avisos de acumulacion.</span>
+          ) : (
+            <span className="text-xs text-slate-400">Datos insuficientes para avisos (falta mapeo de musculos).</span>
           )}
         </div>
         {muscleChips.length > 0 && (
@@ -1607,19 +1617,19 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
         )}
       </div>
 
-      <div className="grid gap-2 md:grid-cols-2">
-        <Card className="border border-white/10 bg-white/5 p-3 text-white">
+      <div className="grid gap-3">
+        <Card className="border border-white/10 bg-white/5 p-3 text-white space-y-3">
           <p className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-400">
             Capacidades foco <HelpTooltip helpKey="wodBuilder.capacityFocus" />
           </p>
-          <div className="mt-2 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             {analysis.capacities.map((c) => (
-              <div key={c.key} className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-slate-300">
+              <div key={c.key} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 shadow-[var(--shadow-sm)]">
+                <div className="flex items-center justify-between">
                   <span className="uppercase tracking-wide">{c.key}</span>
-                  <span className="text-amber-200">{c.value.toFixed(1)}</span>
+                  <span className="text-amber-200 font-semibold">{c.value.toFixed(1)}</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-slate-900">
+                <div className="mt-1 h-1.5 rounded-full bg-slate-900">
                   <div
                     className="h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
                     style={{ width: `${Math.min(100, (c.value / 10) * 100)}%` }}
@@ -1650,22 +1660,26 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
         <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-slate-400">
           Carga muscular <HelpTooltip helpKey="wodBuilder.muscleLoad" />
         </p>
-        <div className="grid gap-2 md:grid-cols-2">
-          {analysis.muscles.slice(0, 6).map((m) => (
-            <div key={m.key} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white">
-              <div className="flex items-center justify-between">
-                <span>{m.key}</span>
-                <span className="text-xs text-amber-200">{m.value.toFixed(0)}</span>
+        {analysis.muscles.length ? (
+          <div className="grid gap-2 md:grid-cols-2">
+            {analysis.muscles.slice(0, 6).map((m) => (
+              <div key={m.key} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white">
+                <div className="flex items-center justify-between">
+                  <span>{m.key}</span>
+                  <span className="text-xs text-amber-200">{m.value.toFixed(0)}</span>
+                </div>
+                <div className="mt-1 h-1.5 rounded-full bg-slate-900">
+                  <div
+                    className="h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+                    style={{ width: `${Math.min(100, (m.value / maxMuscleLoad) * 100)}%` }}
+                  />
+                </div>
               </div>
-              <div className="mt-1 h-1.5 rounded-full bg-slate-900">
-                <div
-                  className="h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
-                  style={{ width: `${Math.min(100, (m.value / maxMuscleLoad) * 100)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">Sin datos de carga muscular (falta mapping de movimientos).</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -1693,18 +1707,6 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
             </div>
           ))}
           {!analysis.breakdown.length && <p className="text-xs text-slate-400">Agrega movimientos para ver el desglose.</p>}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Impacto potencial en el atleta</p>
-        <div className="flex flex-wrap gap-2">
-          {impactTop.map(([key, value]) => (
-            <span key={key} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] uppercase tracking-wide text-slate-200">
-              {key}: {Number(value).toFixed(0)}
-            </span>
-          ))}
-          {!impactTop.length && <span className="text-xs text-slate-400">Se calculara al definir movimientos.</span>}
         </div>
       </div>
     </div>

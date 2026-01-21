@@ -12,15 +12,15 @@ type NativeButtonProps = BaseProps & React.ButtonHTMLAttributes<HTMLButtonElemen
 type ButtonProps = AnchorButtonProps | NativeButtonProps;
 
 const baseStyles =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
+  "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(var(--ring))] disabled:opacity-60 disabled:cursor-not-allowed";
 
 const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-brand text-white shadow-soft hover:-translate-y-0.5 hover:bg-brand/90 focus-visible:outline-brand",
+    "bg-[rgb(var(--accent))] text-slate-900 shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]",
   secondary:
-    "bg-surface-alt text-slate-100 border border-white/10 hover:border-white/20 focus-visible:outline-brand",
+    "bg-[rgb(var(--surface-2))] text-[rgb(var(--text))] border border-[rgb(var(--border))] hover:-translate-y-0.5 hover:border-white/20",
   ghost:
-    "bg-transparent text-slate-100 border border-white/15 hover:border-white/40 focus-visible:outline-brand"
+    "bg-transparent text-[rgb(var(--text))] border border-transparent hover:border-[rgb(var(--border))] hover:bg-white/5"
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {

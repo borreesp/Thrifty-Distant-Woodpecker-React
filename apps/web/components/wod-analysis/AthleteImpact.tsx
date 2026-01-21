@@ -11,6 +11,9 @@ type Props = {
   mode: "analysis" | "workout" | "preview";
 };
 
+const requiredImpactKeys = ["metcon", "resistencia", "fuerza", "tecnica", "movilidad", "mentalidad", "carga_muscular", "fatigue", "load_ratio"];
+const statusKeys = ["fatigue", "acute_load", "load_ratio", "carga_muscular"];
+
 const labels: Record<string, string> = {
   fatigue: "Fatiga actual",
   fatigue_score: "Fatiga actual",
@@ -37,7 +40,11 @@ const labels: Record<string, string> = {
   recovery_time_hours: "Recuperacion",
   acute_load: "Carga aguda",
   chronic_load: "Carga cronica",
-  load_ratio: "Load ratio"
+  load_ratio: "Load ratio",
+  tecnica: "Técnica",
+  movilidad: "Movilidad",
+  mentalidad: "Mentalidad",
+  metcon: "Metcon"
 };
 
 const alias: Record<string, string> = {
@@ -75,7 +82,13 @@ const alias: Record<string, string> = {
   recovery_time_hours: "recovery_time_hours",
   acute_load: "acute_load",
   chronic_load: "chronic_load",
-  load_ratio: "load_ratio"
+  load_ratio: "load_ratio",
+  tecnica: "tecnica",
+  tecnica_basal: "tecnica",
+  movilidad: "movilidad",
+  mentalidad: "mentalidad",
+  mindset: "mentalidad",
+  metcon: "metcon"
 };
 
 const normalizeKey = (raw: string) => {
@@ -122,24 +135,31 @@ export const AthleteImpact: React.FC<Props> = ({ athleteProfile, athleteImpact, 
 
   const rows = useMemo(() => {
     const profileEntries = Object.entries(athleteProfile ?? {});
-    if (!profileEntries.length) return [];
-    return profileEntries.map(([key, current]) => {
-      const normalized = normalizeKey(key);
-      const currentValue = toNumber(current);
+    const profileMap = Object.fromEntries(profileEntries.map(([key, value]) => [normalizeKey(key), value]));
+
+    const keys = new Set<string>();
+    profileEntries.forEach(([key]) => keys.add(normalizeKey(key)));
+    normalizedImpactEntries.forEach((entry) => keys.add(entry.normalized));
+    requiredImpactKeys.forEach((key) => keys.add(key));
+
+    return Array.from(keys).map((normalized) => {
+      const raw = profileMap[normalized];
+      const hasValue = raw !== undefined && raw !== null;
+      const currentValue = hasValue ? toNumber(raw) : 0;
       const impact = normalizedImpactMap[normalized] ?? 0;
       const newValue = currentValue + impact;
       return {
-        key,
+        key: normalized,
         normalized,
-        label: getLabel(normalized, key),
-        current: currentValue,
+        label: getLabel(normalized, normalized),
+        current: hasValue ? currentValue : null,
         impact,
         newValue,
-        hadValue: current !== undefined && current !== null,
+        hadValue: hasValue,
         missingImpact: !(normalized in normalizedImpactMap)
       };
     });
-  }, [athleteProfile, normalizedImpactMap]);
+  }, [athleteProfile, normalizedImpactEntries, normalizedImpactMap, requiredImpactKeys]);
 
   const metricsMissing = useMemo(() => rows.filter((row) => row.missingImpact).map((row) => row.normalized), [rows]);
 
@@ -158,7 +178,7 @@ export const AthleteImpact: React.FC<Props> = ({ athleteProfile, athleteImpact, 
     [normalizedImpactEntries]
   );
 
-  const [showAll, setShowAll] = useState(false);
+  const [showAllCapacities, setShowAllCapacities] = useState(false);
 
   useEffect(() => {
     const debugPayload = {
@@ -191,7 +211,15 @@ export const AthleteImpact: React.FC<Props> = ({ athleteProfile, athleteImpact, 
       );
     }
   }, [athleteImpact, athleteProfile, metricsMissing, metricsMissingData, metricsNotCalculable, metricsWithImpact, rows]);
-  if (!rows.length) {
+  const statusRows = rows.filter((r) => statusKeys.includes(r.normalized));
+  const capacityRows = rows.filter((r) => !statusKeys.includes(r.normalized));
+
+  const capacityVisible = useMemo(() => {
+    if (showAllCapacities) return capacityRows;
+    return capacityRows.filter((r) => r.impact !== 0);
+  }, [capacityRows, showAllCapacities]);
+
+  if (!athleteProfile || Object.keys(athleteProfile || {}).length === 0) {
     return (
       <Card className="bg-slate-900/70 px-6 py-7 ring-1 ring-white/10 md:px-8 md:py-9">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -217,19 +245,74 @@ export const AthleteImpact: React.FC<Props> = ({ athleteProfile, athleteImpact, 
                 ? "Impacto potencial (preview) segun tu perfil"
                 : "Impacto potencial si realizas este WOD"}
           </p>
-          <p className="text-sm text-slate-300">
-            {mode === "analysis"
-              ? "Cruce entre tu estado actual y el impacto registrado en el analisis."
-              : "Estimacion previa del efecto del WOD sobre tus metricas."}
-          </p>
+          <p className="text-sm text-slate-300">Estimacion previa del efecto del WOD sobre tus metricas.</p>
         </div>
       </div>
-      <CompactImpactGrid
-        rows={rows}
-        mode={mode}
-        showAll={showAll}
-        onToggleShowAll={() => setShowAll((prev) => !prev)}
-      />
+
+      <div className="mt-4 space-y-5">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Estado de hoy</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {statusRows.map((row) => (
+              <div
+                key={row.normalized}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+              >
+                <div className="flex items-center justify-between text-[12px] font-semibold text-slate-100">
+                  <span>{row.label}</span>
+                  <span className={classifyColor(row.normalized, row.impact)}>
+                    {row.impact > 0 ? `+${row.impact}` : row.impact}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Actual: <span className="text-slate-200">{row.hadValue ? row.current : "—"}</span>
+                  {mode === "analysis" && row.hadValue && (
+                    <>
+                      {" — "}
+                      <span className="text-slate-300">Nuevo: {row.newValue}</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Capacidades impactadas</p>
+            <Button variant="ghost" size="sm" onClick={() => setShowAllCapacities((prev) => !prev)}>
+              {showAllCapacities ? "Ver menos" : "Mostrar todas"}
+            </Button>
+          </div>
+          <div className="flex flex-col gap-1">
+            {capacityVisible.map((row) => (
+              <div
+                key={row.normalized}
+                className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              >
+                <div className="min-w-0 text-[12px] font-semibold text-slate-100">
+                  <span className="truncate">{row.label}</span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                  <span>
+                    Actual: <span className="text-slate-200">{row.hadValue ? row.current : "—"}</span>
+                  </span>
+                  <span className={row.hadValue || row.impact !== 0 ? classifyColor(row.normalized, row.impact) : "text-slate-400"}>
+                    Impacto: {row.hadValue || row.impact !== 0 ? (row.impact > 0 ? `+${row.impact}` : row.impact) : "—"}
+                  </span>
+                  {mode === "analysis" && row.hadValue && <span className="text-slate-300">Nuevo: {row.newValue}</span>}
+                </div>
+              </div>
+            ))}
+            {!capacityVisible.length && (
+              <p className="text-[12px] text-slate-400">Sin capacidades impactadas relevantes.</p>
+            )}
+          </div>
+        </div>
+      </div>
     </Card>
   );
 };
@@ -250,9 +333,10 @@ type CompactProps = {
     key: string;
     normalized: string;
     label: string;
-    current: number;
+    current: number | null;
     impact: number;
     newValue: number;
+    hadValue: boolean;
   }[];
   mode: Props["mode"];
   showAll: boolean;
@@ -278,32 +362,31 @@ const CompactImpactGrid: React.FC<CompactProps> = ({ rows, mode, showAll, onTogg
   const canToggle = neutral.length > 0;
 
   return (
-    <div className="mt-4 space-y-3">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="mt-4 space-y-2">
+      <div className="flex flex-col gap-2">
         {visibleRows.map((row) => (
           <div
             key={row.normalized}
-            className="flex min-h-[64px] flex-col justify-center rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
           >
-            <div className="text-[12px] font-semibold text-slate-100">{row.label}</div>
-            <div className="text-[11px] text-slate-400">
-              Actual: <span className="text-slate-200">{row.current}</span>
-              {" — "}
-              <span className={classifyColor(row.normalized, row.impact)}>
-                Impacto: {row.impact > 0 ? `+${row.impact}` : row.impact}
+            <div className="min-w-0 text-[12px] font-semibold text-slate-100">
+              <span className="truncate">{row.label}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+              <span>
+                Actual: <span className="text-slate-200">{row.hadValue ? row.current : "—"}</span>
+                {!row.hadValue && <span className="ml-2 text-slate-500">Sin baseline</span>}
               </span>
-              {mode === "analysis" && (
-                <>
-                  {" — "}
-                  <span className="text-slate-300">Nuevo: {row.newValue}</span>
-                </>
-              )}
+              <span className={row.hadValue || row.impact !== 0 ? classifyColor(row.normalized, row.impact) : "text-slate-400"}>
+                Impacto: {row.hadValue || row.impact !== 0 ? (row.impact > 0 ? `+${row.impact}` : row.impact) : "Sin baseline"}
+              </span>
+              {mode === "analysis" && row.hadValue && <span className="text-slate-300">Nuevo: {row.newValue}</span>}
             </div>
           </div>
         ))}
       </div>
       {canToggle && (
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-3">
           <Button variant="ghost" size="sm" onClick={onToggleShowAll}>
             {showAll ? "Ver menos" : "Ver más"}
           </Button>
