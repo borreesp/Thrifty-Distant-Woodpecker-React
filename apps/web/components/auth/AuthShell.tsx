@@ -45,7 +45,9 @@ export const AuthShell: React.FC<{ children: React.ReactNode }> = ({ children })
               </Button>
             </div>
           ) : (
-            <Button variant="primary" type="button" onClick={() => router.push("/auth/login")}>"Empezar sesion"</Button>
+            <Button variant="primary" type="button" onClick={() => router.push("/auth/login")}>
+              Empezar sesion
+            </Button>
           )
         }
       />

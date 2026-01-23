@@ -6,6 +6,8 @@
     "moduleResolution": "Node",
     "jsx": "preserve",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "isolatedModules": true,
     "esModuleInterop": true,

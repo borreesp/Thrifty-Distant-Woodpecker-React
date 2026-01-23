@@ -17,6 +17,14 @@ export type Movement = {
   category?: string | null;
   description?: string | null;
   default_load_unit?: string | null;
+  code?: string | null;
+  pattern?: string | null;
+  default_metric_unit?: string | null;
+  supports_reps?: boolean | null;
+  supports_load?: boolean | null;
+  supports_distance?: boolean | null;
+  supports_time?: boolean | null;
+  supports_calories?: boolean | null;
   video_url?: string | null;
   muscles: MovementMuscle[];
 };

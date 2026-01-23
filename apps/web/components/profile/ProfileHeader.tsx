@@ -1,6 +1,5 @@
 import React from "react";
 import { Button } from "@thrifty/ui";
-import { cn } from "@thrifty/utils";
 
 type ProfileHeaderProps = {
   name: string;

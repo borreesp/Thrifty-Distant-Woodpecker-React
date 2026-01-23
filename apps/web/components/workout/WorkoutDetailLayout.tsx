@@ -1,6 +1,6 @@
 ﻿
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Button, Card, Section } from "@thrifty/ui";
 import { BarLevelChart } from "../charts/BarLevelChart";
 import { LinearProgressBar } from "../charts/LinearProgressBar";

@@ -56,6 +56,16 @@ type WodMovement = {
   pace?: string;
 };
 
+const CALORIE_CODES = new Set(["row", "skierg", "bike_erg", "assault_bike", "echo_bike"]);
+const isCalorieMovement = (movement?: Movement) => {
+  if (!movement) return false;
+  const code = (movement.code || "").toLowerCase();
+  if (CALORIE_CODES.has(code)) return true;
+  if (movement.supports_calories !== true) return false;
+  const name = (movement.name || "").toLowerCase();
+  return ["row", "ski", "bike"].some((k) => name.includes(k));
+};
+
 type WodBlock = {
   id: string;
   block_type?: "STANDARD" | "INTERVALS" | "ROUNDS";
@@ -74,6 +84,32 @@ type WodBlock = {
     tasks: Array<{ movement_uid?: string; movement_key?: string; role: "CAP" | "REMAINING" | "STANDARD" }>;
   }>;
   movements: WodMovement[];
+};
+
+type DraftParsedWod = {
+  title?: string;
+  notes?: string;
+  blocks?: Array<{
+    block_type?: string;
+    title?: string;
+    rounds?: number;
+    work_seconds?: number;
+    rest_seconds?: number;
+    pattern?: string[] | null;
+    scenarios?: Array<{
+      code?: string;
+      movements?: Array<{
+        name_raw?: string;
+        movement_id?: number;
+        reps?: number;
+        load?: number;
+        load_unit?: string;
+        distance_meters?: number;
+        duration_seconds?: number;
+        calories?: number;
+      }>;
+    }>;
+  }>;
 };
 
 type DragItem =
@@ -200,12 +236,13 @@ const expectedTimeForMovement = (mv: WodMovement, athleteLevel: number) => {
 const movementToImpact = (mv: WodMovement, quantityOverride?: number): ImpactBlockInput["movements"][number] => {
   const rule = findMovementRule(mv.movement.name)?.rule;
   const baseUnit = rule?.base_unit ?? "reps";
+  const allowsCalories = isCalorieMovement(mv.movement);
   const impactMv: ImpactBlockInput["movements"][number] = {
     name: mv.movement.name ?? "Movimiento",
     reps: mv.reps,
     distance_meters: mv.distance_meters,
     duration_seconds: mv.duration_seconds,
-    calories: mv.calories,
+    calories: allowsCalories ? mv.calories : undefined,
     load: mv.load,
     target_time_seconds: mv.target_time_seconds,
     execution_multiplier:
@@ -214,7 +251,7 @@ const movementToImpact = (mv: WodMovement, quantityOverride?: number): ImpactBlo
 
   if (quantityOverride !== undefined) {
     if (baseUnit === "meters") impactMv.distance_meters = quantityOverride;
-    else if (baseUnit === "calories") impactMv.calories = quantityOverride;
+    else if (baseUnit === "calories") impactMv.calories = allowsCalories ? quantityOverride : undefined;
     else if (baseUnit === "seconds") impactMv.duration_seconds = quantityOverride;
     else impactMv.reps = quantityOverride;
   }
@@ -237,8 +274,10 @@ const buildImpactDefinition = (blocks: WodBlock[], athleteLevel: number): Impact
     if (blockType === "ROUNDS") {
       const rounds = Math.max(1, block.rounds ?? 1);
       const scenarios = block.scenarios ?? [];
-      const pattern = (block.pattern?.length ? block.pattern : scenarios.map((s) => s.label)) ?? [];
-      const sequence = pattern.length ? pattern : scenarios.map((s) => s.label);
+      const patternRaw = block.pattern ?? [];
+      const pattern = Array.isArray(patternRaw) ? patternRaw : typeof patternRaw === "string" ? [patternRaw] : [];
+      const sequenceRaw = pattern.length ? pattern : scenarios.map((s) => s.label);
+      const sequence = Array.isArray(sequenceRaw) ? sequenceRaw : typeof sequenceRaw === "string" ? [sequenceRaw] : [];
       const resolveMv = (ref?: string, fallbackIdx?: number) => {
         const byUid = block.movements.find((mv) => mv.uid === ref);
         if (byUid) return byUid;
@@ -248,7 +287,8 @@ const buildImpactDefinition = (blocks: WodBlock[], athleteLevel: number): Impact
       const resolveScenario = (label: string) => scenarios.find((s) => s.label === label) ?? scenarios[0];
 
       const movements: ImpactBlockInput["movements"] = [];
-      const labels = sequence.length ? sequence : scenarios.map((s) => s.label);
+      const labelsRaw = sequence.length ? sequence : scenarios.map((s) => s.label);
+      const labels = Array.isArray(labelsRaw) ? labelsRaw : typeof labelsRaw === "string" ? [labelsRaw] : [];
       if (!labels.length) {
         block.movements.forEach((mv) => movements.push(movementToImpact(mv)));
       } else {
@@ -279,9 +319,11 @@ const buildImpactDefinition = (blocks: WodBlock[], athleteLevel: number): Impact
     const workSeconds = block.scenario_work_seconds ?? 240;
     const restSeconds = block.scenario_rest_seconds ?? 60;
     const rounds = block.rounds ?? 1;
-    const pattern = (block.pattern?.length ? block.pattern : block.scenarios?.map((s) => s.label)) ?? [];
+    const patternRaw = block.pattern ?? [];
+    const pattern = Array.isArray(patternRaw) ? patternRaw : typeof patternRaw === "string" ? [patternRaw] : [];
     const scenarios = block.scenarios ?? [];
-    const sequence = pattern.length ? pattern : scenarios.map((s) => s.label);
+    const sequenceRaw = pattern.length ? pattern : scenarios.map((s) => s.label);
+    const sequence = Array.isArray(sequenceRaw) ? sequenceRaw : typeof sequenceRaw === "string" ? [sequenceRaw] : [];
 
     const resolveMv = (ref?: string, fallbackIdx?: number) => {
       const byUid = block.movements.find((mv) => mv.uid === ref);
@@ -293,7 +335,8 @@ const buildImpactDefinition = (blocks: WodBlock[], athleteLevel: number): Impact
 
     const movements: ImpactBlockInput["movements"] = [];
 
-    const labels = sequence.length ? sequence : scenarios.map((s) => s.label);
+    const labelsRaw = sequence.length ? sequence : scenarios.map((s) => s.label);
+    const labels = Array.isArray(labelsRaw) ? labelsRaw : typeof labelsRaw === "string" ? [labelsRaw] : [];
     labels.forEach((label) => {
       const scenario = resolveScenario(label);
       if (!scenario) return;
@@ -313,7 +356,7 @@ const buildImpactDefinition = (blocks: WodBlock[], athleteLevel: number): Impact
           const baseRule = findMovementRule(mv.movement.name)?.rule;
           const quantityBase =
             (baseRule?.base_unit === "meters" && mv.distance_meters) ||
-            (baseRule?.base_unit === "calories" && mv.calories) ||
+            (baseRule?.base_unit === "calories" && isCalorieMovement(mv.movement) && mv.calories) ||
             (baseRule?.base_unit === "seconds" && mv.duration_seconds) ||
             mv.reps ||
             mv.distance_meters ||
@@ -405,6 +448,14 @@ const formatTotalTime = (seconds?: number) => {
     .padStart(2, "0");
   const ss = (s % 60).toString().padStart(2, "0");
   return `${mm}:${ss}`;
+};
+
+const sanitizeMovementMetrics = (mv: WodMovement): WodMovement => {
+  const allowsCalories = isCalorieMovement(mv.movement);
+  return {
+    ...mv,
+    calories: allowsCalories ? mv.calories : undefined
+  };
 };
 
 const computeAnalysis = (blocks: WodBlock[], athleteProfile?: AthleteProfileResponse | null): AnalysisResult => {
@@ -626,7 +677,7 @@ const hydrateWorkoutToBuilder = (workout: Workout, catalog: Movement[]): { block
           comment: (bm as any).description ?? (bm as any).comment ?? undefined
         };
         if (sourceKey) wbmMap.set(sourceKey, uidLocal);
-        return hydrated;
+        return sanitizeMovementMetrics(hydrated);
       });
 
       // Si es un calentamiento legacy sin movimientos pero con notas/descripcion, crea un movimiento placeholder para evitar validación
@@ -783,7 +834,7 @@ const validateBuilder = (title: string, blocks: WodBlock[]): string[] => {
       const hasReps = mv.reps != null && mv.reps > 0;
       const hasLoad = mv.load != null && mv.load > 0;
       const hasDistance = mv.distance_meters != null && mv.distance_meters > 0;
-      const hasCals = mv.calories != null && mv.calories > 0;
+      const hasCals = isCalorieMovement(mv.movement) && mv.calories != null && mv.calories > 0;
       const hasDuration = mv.duration_seconds != null && mv.duration_seconds > 0;
 
       if (category.includes("cardio")) {
@@ -1346,7 +1397,7 @@ export function BlockCard({
           <div className="md:col-span-2 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className={pill}>Patron</span>
-              {pattern.map((p, idx) => (
+              {(Array.isArray(pattern) ? pattern : typeof pattern === "string" ? [pattern] : []).map((p, idx) => (
                 <span key={`${p}-${idx}`} className="flex items-center gap-1 rounded-full bg-slate-900/60 px-2 py-1">
                   {p}
                   <button
@@ -1713,7 +1764,147 @@ export function WodAnalysisPanel({ analysis }: { analysis: AnalysisResult }) {
   );
 }
 
-export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
+function mapDraftToBlocks(
+  draft: DraftParsedWod | any,
+  movements: Movement[]
+): { blocks: WodBlock[]; title?: string; unresolved: any[] } {
+  console.debug("[wod-builder] mapDraftToBlocks raw draft", draft);
+  if (!draft?.blocks?.length) return { blocks: [], title: draft.title, unresolved: draft?.unresolved ?? [] };
+
+  const normalizeBlockType = (raw?: string) => {
+    const bt = String(raw || "").toLowerCase();
+    if (["intervals", "interval", "work_rest", "workrest"].includes(bt)) return "INTERVALS";
+    if (["rounds", "round"].includes(bt)) return "ROUNDS";
+    return "STANDARD";
+  };
+
+  const fuzzyIncludes = (a: string, b: string) => a.includes(b) || b.includes(a);
+
+  const findMovement = (mvDraft: any): Movement | null => {
+    const normName = (mvDraft?.name_raw || "").toLowerCase().trim();
+    const rawName = (mvDraft?.raw || mvDraft?.unresolved_label || "").toLowerCase().trim();
+    const candidates = [mvDraft?.movement_id, normName, rawName].filter(Boolean);
+    for (const candidate of candidates) {
+      if (typeof candidate === "number") {
+        const byId = movements.find((m) => m.id === candidate);
+        if (byId) return byId;
+      } else if (typeof candidate === "string") {
+        const exact = movements.find((m) => m.name.toLowerCase() === candidate);
+        if (exact) return exact;
+        const loose = movements.find((m) => fuzzyIncludes(m.name.toLowerCase(), candidate));
+        if (loose) return loose;
+      }
+    }
+    return null;
+  };
+
+  const isRemaining = (mvDraft: any) => {
+    const raw = `${mvDraft?.raw || ""} ${mvDraft?.name_raw || ""} ${mvDraft?.unit || ""}`.toLowerCase();
+    if (mvDraft?.is_max === true) return true;
+    if (raw.includes("max") || raw.includes("máx")) return true;
+    return false;
+  };
+
+  const hasQuantity = (mvDraft: any) =>
+    mvDraft?.reps ||
+    mvDraft?.calories ||
+    mvDraft?.distance_meters ||
+    mvDraft?.duration_seconds ||
+    mvDraft?.metric?.value;
+
+  const unresolved: any[] = [];
+
+  const blocks: WodBlock[] = draft.blocks.map((b: any, idx: number) => {
+    console.debug("[wod-builder] mapping block", b);
+    const blockMovements: WodMovement[] = [];
+    const scenarios = b.scenarios || [];
+    const scenarioDefs =
+      scenarios.map((scenario: any, sIdx: number) => {
+        const tasks: Array<{ movement_uid: string; role: "CAP" | "REMAINING" | "STANDARD" }> = [];
+        (scenario.items || scenario.movements || []).forEach((mv: any, mvIdx: number) => {
+          const tpl = findMovement(mv);
+          const uidVal = `${idx}-${sIdx}-${mvIdx}-${Date.now()}`;
+          const role: "CAP" | "REMAINING" | "STANDARD" = isRemaining(mv)
+            ? "REMAINING"
+            : hasQuantity(mv)
+              ? "CAP"
+              : "STANDARD";
+
+          if (tpl) {
+            blockMovements.push({
+              uid: uidVal,
+              movement: tpl,
+              reps: mv.reps,
+              load: mv.load,
+              load_unit: mv.load_unit,
+              distance_meters: mv.distance_meters,
+              calories: mv.calories,
+              duration_seconds: mv.duration_seconds
+            });
+          } else {
+            const placeholder: Movement = {
+              id: -1000 - blockMovements.length,
+              name: mv.raw || mv.name_raw || "Movimiento no resuelto",
+              category: "Unresolved",
+              default_load_unit: mv.load_unit ?? null,
+              muscles: [],
+              video_url: null,
+              description: mv.raw || mv.name_raw || ""
+            } as any;
+            blockMovements.push({
+              uid: uidVal,
+              movement: placeholder,
+              reps: mv.reps,
+              load: mv.load,
+              load_unit: mv.load_unit,
+              distance_meters: mv.distance_meters,
+              calories: mv.calories,
+              duration_seconds: mv.duration_seconds
+            });
+            unresolved.push({
+              scenario: scenario.label || scenario.code || `Escenario ${sIdx + 1}`,
+              index: mvIdx,
+              raw: mv.raw || mv.name_raw,
+              reason: "no_match_catalog"
+            });
+          }
+          tasks.push({
+            movement_uid: uidVal,
+            role
+          });
+        });
+        console.debug("[wod-builder] scenario built", { label: scenario.label, tasks });
+        return {
+          label: scenario.label || scenario.code || `Escenario ${sIdx + 1}`,
+          tasks
+        };
+      }) || [];
+
+    const mappedType = normalizeBlockType(b.block_type);
+    console.debug("[wod-builder] block result", {
+      mappedType,
+      scenarios: scenarioDefs,
+      movements: blockMovements
+    });
+    return {
+      id: `draft-${idx}-${Date.now()}`,
+      title: (b as any).title || draft.title || `Bloque ${idx + 1}`,
+      block_type: mappedType as WodBlock["block_type"],
+      movements: blockMovements,
+      rounds: b.rounds,
+      scenario_work_seconds: b.work_seconds,
+      scenario_rest_seconds: b.rest_seconds,
+      pattern: (b as any).pattern || (b.scenarios ? b.scenarios.map((s: any) => s.code || s.label || "A") : undefined),
+      scenarios: scenarioDefs
+    };
+  });
+
+  const finalUnresolved = unresolved.length ? unresolved : draft.unresolved ?? [];
+  console.debug("[wod-builder] mapDraftToBlocks final", { blocks, unresolved: finalUnresolved });
+  return { blocks, title: draft.title, unresolved: finalUnresolved };
+}
+
+export function WodBuilder({ editWorkoutId, draftKey }: { editWorkoutId?: string; draftKey?: string }) {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [blocks, setBlocks] = useState<WodBlock[]>([
     {
@@ -1737,7 +1928,8 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
   const router = useRouter();
   const [showConfirmSave, setShowConfirmSave] = useState(false);
   const [pendingKind, setPendingKind] = useState<"wod" | "template" | "ai" | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [unresolvedDraft, setUnresolvedDraft] = useState<any[]>([]);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1750,6 +1942,29 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
     api.getMovements().then(setMovements).catch(() => setMovements([]));
     api.getAthleteProfile().then(setAthleteProfile).catch(() => setAthleteProfile(null));
   }, []);
+
+  useEffect(() => {
+    if (!movements.length || draftLoaded) return;
+    try {
+      const raw = localStorage.getItem("wod_builder_draft");
+      if (!raw) return;
+      console.debug("[wod-builder] loading draft from localStorage");
+      const parsed = JSON.parse(raw) as { parsed: DraftParsedWod | any };
+      const mapped = mapDraftToBlocks(parsed.parsed, movements);
+      if (mapped.blocks.length) {
+        setBlocks(mapped.blocks);
+        if (mapped.title) setWorkoutTitle(mapped.title);
+        setStatus("Draft cargado desde OCR.");
+      }
+      setUnresolvedDraft(mapped.unresolved || []);
+      setDraftLoaded(true);
+      if (draftKey) {
+        localStorage.removeItem("wod_builder_draft");
+      }
+    } catch (err) {
+      console.warn("No se pudo cargar draft OCR", err);
+    }
+  }, [movements, draftLoaded, draftKey]);
 
   useEffect(() => {
     if (!editWorkoutId) return;
@@ -1842,10 +2057,11 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
   };
 
   const handleUpdateMovement = (blockId: string, movement: WodMovement) => {
+    const sanitized = sanitizeMovementMetrics(movement);
     setBlocks((prev) =>
       prev.map((block) => {
         if (block.id !== blockId) return block;
-        return { ...block, movements: block.movements.map((mv) => (mv.uid === movement.uid ? movement : mv)) };
+        return { ...block, movements: block.movements.map((mv) => (mv.uid === movement.uid ? sanitized : mv)) };
       })
     );
   };
@@ -1890,6 +2106,10 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
   }, [analysis.hyroxDetail]);
 
   const buildPayload = (purpose: "wod" | "template" | "ai"): WorkoutCreatePayload => {
+    const sanitizedBlocks = blocks.map((b) => ({
+      ...b,
+      movements: b.movements.map((mv) => sanitizeMovementMetrics(mv))
+    }));
     const primaryCapacity = normalizeCapacity(analysis.capacities[0]?.key ?? "Metcon");
     const mainMuscle = normalizeMuscle(analysis.muscles[0]?.key ?? "Core");
     const domain = normalizeDomain(analysis.domain);
@@ -1904,14 +2124,14 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
       .toString();
 
     const movementKeyMap = new Map<string, string>();
-    blocks.forEach((block, bIndex) =>
+    sanitizedBlocks.forEach((block, bIndex) =>
       block.movements.forEach((mv, mIndex) => {
         movementKeyMap.set(mv.uid, mv.source_key ?? `tmp:${bIndex}:${mIndex}`);
       })
     );
 
     const movementSettings: Record<string, { execution_mode?: string; target_time_seconds?: number }> = {};
-    blocks.forEach((block) =>
+    sanitizedBlocks.forEach((block) =>
       block.movements.forEach((mv) => {
         const key = movementKeyMap.get(mv.uid) ?? mv.uid;
         if (mv.target_time_seconds || mv.execution_mode) {
@@ -1937,7 +2157,7 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
       }
     > = {};
 
-    blocks.forEach((block) => {
+    sanitizedBlocks.forEach((block) => {
       if ((block.block_type ?? "STANDARD") === "STANDARD") return;
       const scenarios =
         block.scenarios?.map((sc) => ({
@@ -1986,7 +2206,7 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
       estimated_difficulty: analysis.difficulty,
       main_muscle_chain: mainMuscle,
       extra_attributes_json: {
-        builder_blocks: blocks,
+        builder_blocks: sanitizedBlocks,
         pacing: analysis.pacing,
         hyrox_transfer_score: analysis.hyroxDetail.transferScore,
         hyrox_components: analysis.hyroxDetail.components,
@@ -2079,7 +2299,6 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
 
   const handleSave = (kind: "wod" | "template" | "ai") => {
     const validation = validateBuilder(workoutTitle, blocks);
-    setValidationErrors(validation);
     if (validation.length) {
       setStatus("Revisa los campos obligatorios: " + validation.slice(0, 3).join(" | "));
       return;
@@ -2186,15 +2405,23 @@ export function WodBuilder({ editWorkoutId }: { editWorkoutId?: string }) {
         description="Construye un WOD visualmente, arrastra movimientos y observa el analisis en tiempo real."
         className={sectionShell}
       >
+        {unresolvedDraft.length > 0 && (
+          <div className="mb-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+            {unresolvedDraft.length} movimientos sin resolver desde el OCR. Añádelos manualmente o selecciónalos antes de guardar.
+            <Button size="sm" variant="ghost" className="ml-2" onClick={() => setUnresolvedDraft([])}>
+              Marcar como resuelto
+            </Button>
+          </div>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           <div className="flex flex-wrap gap-3">
-            <Button variant="primary" onClick={() => handleSave("wod")}>
+            <Button variant="primary" onClick={() => handleSave("wod")} disabled={unresolvedDraft.length > 0}>
               Guardar WOD
             </Button>
-            <Button variant="secondary" onClick={() => handleSave("template")}>
+            <Button variant="secondary" onClick={() => handleSave("template")} disabled={unresolvedDraft.length > 0}>
               Guardar como plantilla
             </Button>
-            <Button variant="ghost" onClick={() => handleSave("ai")}>
+            <Button variant="ghost" onClick={() => handleSave("ai")} disabled={unresolvedDraft.length > 0}>
               Analizar con IA
             </Button>
             <Button variant="ghost" onClick={handleGenerateRandom}>

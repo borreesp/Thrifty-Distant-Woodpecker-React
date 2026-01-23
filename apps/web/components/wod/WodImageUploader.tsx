@@ -7,9 +7,10 @@ import type { EditableWodBlock } from "./wod-types";
 type ProcessingSource = "upload" | "reference" | null;
 
 type Props = {
-  onParsed: (payload: { imageUrl: string; blocks: EditableWodBlock[] }) => void;
+  onParsed: (payload: { imageUrl: string; blocks: EditableWodBlock[]; text?: string; warnings?: string[] }) => void;
   onProcessingChange?: (loading: boolean) => void;
   onUseReferenceWod?: () => Promise<{ imageUrl?: string | null; blocks: EditableWodBlock[] } | void>;
+  processFile?: (file: File) => Promise<{ blocks: EditableWodBlock[]; text?: string; warnings?: string[] }>;
   useReferenceLabel?: string;
   useReferenceDisabled?: boolean;
   referenceMessage?: string | null;
@@ -33,6 +34,7 @@ export const WodImageUploader: React.FC<Props> = ({
   onParsed,
   onProcessingChange,
   onUseReferenceWod,
+  processFile,
   useReferenceLabel = "Usar WOD seleccionado",
   useReferenceDisabled,
   referenceMessage
@@ -57,20 +59,25 @@ export const WodImageUploader: React.FC<Props> = ({
     onProcessingChange?.(state);
   };
 
-  const simulateOcr = (imageUrl: string) => {
-    triggerProcessing(true, "upload");
-    setTimeout(() => {
-      onParsed({ imageUrl, blocks: buildBlocks() });
-      triggerProcessing(false);
-    }, 700);
-  };
-
   const handleFiles = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
     const imageUrl = URL.createObjectURL(file);
     setPreview(imageUrl);
-    simulateOcr(imageUrl);
+    triggerProcessing(true, "upload");
+    const runner = processFile
+      ? processFile(file)
+      : Promise.resolve({ blocks: buildBlocks(), text: undefined, warnings: ["OCR mock: reemplazar con servicio real."] });
+    runner
+      .then((result) => {
+        if (result) {
+          onParsed({ imageUrl, blocks: result.blocks, text: result.text, warnings: result.warnings });
+        }
+      })
+      .catch((err) => {
+        console.error("[WodImageUploader] Error al procesar imagen", err);
+      })
+      .finally(() => triggerProcessing(false));
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -108,7 +115,7 @@ export const WodImageUploader: React.FC<Props> = ({
         <div className="lg:col-span-2">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Paso 1 · Subida</p>
           <h2 className="mt-1 text-2xl font-semibold text-white">Sube un screenshot o foto del entrenamiento</h2>
-          <p className="mt-1 text-sm text-slate-300">Drag & drop habilitado. Simulamos OCR y generamos bloques editables al instante.</p>
+          <p className="mt-1 text-sm text-slate-300">Drag & drop habilitado. Ejecutamos OCR real y generamos bloques editables al instante.</p>
           <motion.div
             className={`mt-4 flex flex-col items-center justify-center rounded-2xl border px-6 py-8 text-center transition ${borderClass}`}
             onDragOver={(e) => {
@@ -149,7 +156,7 @@ export const WodImageUploader: React.FC<Props> = ({
           </motion.div>
           <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-3">
             <span className="rounded-lg bg-white/5 px-3 py-2">1) Foto de pizarra o app</span>
-            <span className="rounded-lg bg-white/5 px-3 py-2">2) OCR mock en 1s</span>
+            <span className="rounded-lg bg-white/5 px-3 py-2">2) OCR real en segundos</span>
             <span className="rounded-lg bg-white/5 px-3 py-2">3) Bloques listos para editar</span>
           </div>
         </div>

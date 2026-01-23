@@ -38,6 +38,15 @@ const buildHeaders = (headers?: HeadersInit) => {
   };
 };
 
+const buildAuthHeaders = () => {
+  const headers: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("access_token");
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 async function fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
@@ -117,6 +126,31 @@ export const api = {
 
   async getWorkoutStats(): Promise<WorkoutStats[]> {
     return fetchJson<WorkoutStats[]>("/workouts/stats");
+  },
+
+  async uploadWodOcr(file: File): Promise<{ text: string; confidence: number; mode: string; source?: any }> {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_BASE}/wod-analysis/ocr`, {
+      method: "POST",
+      body: form,
+      credentials: "include",
+      headers: {
+        ...buildAuthHeaders()
+      }
+    });
+    if (!res.ok) {
+      const message = await res.text();
+      throw new Error(message || `OCR request failed (${res.status})`);
+    }
+    return res.json();
+  },
+
+  async parseWodDraft(text: string): Promise<any> {
+    return fetchJson(`/wod-analysis/parse`, {
+      method: "POST",
+      body: JSON.stringify({ text })
+    });
   },
 
   async getMovements(): Promise<Movement[]> {

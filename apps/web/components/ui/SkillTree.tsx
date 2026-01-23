@@ -1,5 +1,4 @@
 import React from "react";
-import { cn } from "@thrifty/utils";
 
 type Node = {
   id: string;

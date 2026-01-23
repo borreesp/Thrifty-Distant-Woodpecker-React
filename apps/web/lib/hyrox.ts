@@ -1,4 +1,4 @@
-import type { Workout, WorkoutBlock, WorkoutBlockMovement, Movement } from "./types";
+import type { Workout, WorkoutBlockMovement, Movement } from "./types";
 
 export type HyroxComponents = {
   run: number;

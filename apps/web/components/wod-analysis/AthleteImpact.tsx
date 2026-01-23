@@ -315,8 +315,6 @@ export const AthleteImpact: React.FC<Props> = ({ athleteProfile, athleteImpact, 
   );
 };
 
-type ImpactRow = ReturnType<typeof useMemo> extends (infer U)[] ? never : never;
-
 const negativeKeywords = ["fatigue", "load", "acute", "chronic", "stress"];
 
 const classifyColor = (normalized: string, impact: number) => {
@@ -324,72 +322,4 @@ const classifyColor = (normalized: string, impact: number) => {
   if (impact === 0) return "text-slate-300";
   if (impact > 0) return isNegativeMetric ? "text-rose-300" : "text-emerald-300";
   return isNegativeMetric ? "text-emerald-300" : "text-rose-300";
-};
-
-type CompactProps = {
-  rows: {
-    key: string;
-    normalized: string;
-    label: string;
-    current: number | null;
-    impact: number;
-    newValue: number;
-    hadValue: boolean;
-  }[];
-  mode: Props["mode"];
-  showAll: boolean;
-  onToggleShowAll: () => void;
-};
-
-const CompactImpactGrid: React.FC<CompactProps> = ({ rows, mode, showAll, onToggleShowAll }) => {
-  const impacted = useMemo(() => rows.filter((r) => r.impact !== 0), [rows]);
-  const neutral = useMemo(() => rows.filter((r) => r.impact === 0), [rows]);
-
-  const visibleRows = useMemo(() => {
-    const sortedImpacted = [...impacted].sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
-    const sortedNeutral = [...neutral].sort((a, b) => a.label.localeCompare(b.label));
-    if (showAll) {
-      return [...sortedImpacted, ...sortedNeutral];
-    }
-    if (!sortedImpacted.length) {
-      return sortedNeutral.slice(0, 6);
-    }
-    return sortedImpacted;
-  }, [impacted, neutral, showAll]);
-
-  const canToggle = neutral.length > 0;
-
-  return (
-    <div className="mt-4 space-y-2">
-      <div className="flex flex-col gap-2">
-        {visibleRows.map((row) => (
-          <div
-            key={row.normalized}
-            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
-          >
-            <div className="min-w-0 text-[12px] font-semibold text-slate-100">
-              <span className="truncate">{row.label}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-              <span>
-                Actual: <span className="text-slate-200">{row.hadValue ? row.current : "—"}</span>
-                {!row.hadValue && <span className="ml-2 text-slate-500">Sin baseline</span>}
-              </span>
-              <span className={row.hadValue || row.impact !== 0 ? classifyColor(row.normalized, row.impact) : "text-slate-400"}>
-                Impacto: {row.hadValue || row.impact !== 0 ? (row.impact > 0 ? `+${row.impact}` : row.impact) : "Sin baseline"}
-              </span>
-              {mode === "analysis" && row.hadValue && <span className="text-slate-300">Nuevo: {row.newValue}</span>}
-            </div>
-          </div>
-        ))}
-      </div>
-      {canToggle && (
-        <div className="flex justify-end pt-3">
-          <Button variant="ghost" size="sm" onClick={onToggleShowAll}>
-            {showAll ? "Ver menos" : "Ver más"}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
 };
